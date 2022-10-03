@@ -24,35 +24,31 @@ using namespace std;
  2.记录L和R的下标，判断对应位置的L和R的下标，必须保证
  对应位置的L start中 下标需要 大于等于 end
  对应位置的R start中 下标需要 小于等于 end
+ ------------------->
+ 时间优化：遍历一遍
+ 空间优化：O(1)
+ 用两个下标分别从start和end的起始位置开始，以此往后遍历,遇到L或者R：
+ 1.判断是字符值是否相等
+ 2.判断下标关系是否满足
+ 依次判断直到遍历完成
  */
 bool canTransform(string start, string end) {
-    vector<int> sl, sr, el, er;
-    string ss, se;
-    // 分别存储L，R下标和去掉X后的字串
-    for(int i = 0; i < start.length(); ++i) {
-        if (start[i] == 'L') {
-            ss.push_back(start[i]);
-            sl.push_back(i);
-        } else if (start[i] == 'R') {
-            ss.push_back(start[i]);
-            sr.push_back(i);
-        }
-        if (end[i] == 'L') {
-            se.push_back(end[i]);
-            el.push_back(i);
-        } else if (end[i] == 'R') {
-            se.push_back(end[i]);
-            er.push_back(i);
-        }
+    int i = 0, j = 0;
+    while(i < start.length() && j < end.length()) {
+        while(i < start.length() && start[i] == 'X') ++i;
+        while(j < end.length() && end[j] == 'X') ++j;
+        // 特别注意: 判断i，j是否已经到达结尾
+        if (i >= start.length() || j >= end.length()) break;
+        if (start[i] != end[j]) return false;
+        if (start[i] == 'L' && i < j) return false;
+        if (start[i] == 'R' && i > j) return false;
+        ++i;
+        ++j;
     }
-    // 判断去掉X和都字串是否相等
-    if (ss != se) return false;
-    // 判断对应位置L和R的关系
-    for(int i = 0; i < sl.size(); ++i) {
-        if (sl[i] < el[i]) return false;
-    }
-    for(int i = 0; i < sr.size(); ++i) {
-        if (sr[i] > er[i]) return false;
+    auto& s = i >= start.length() ? end : start;
+    auto k = i >= start.length() ? j : i;
+    for(; k < s.length(); ++k) {
+        if (s[k] == 'L' || s[k] == 'R') return false;
     }
     return true;
 }
