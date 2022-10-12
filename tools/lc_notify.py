@@ -195,7 +195,7 @@ def stat_user_info():
 
     save_to_excel(result, savepath)
     # 发送邮件
-    for u in user_list2:
+    for u in user_list:
         if u in emails:
             if not send_email(u, savepath, td, k_medal, g_medal):
                 print("{} email send fail".format(u))
