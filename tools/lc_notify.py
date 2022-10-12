@@ -16,7 +16,7 @@ user_list = ['smilecode-2', 'aween', 'zzz-4t8', 'ChinaYC', 'CNLYJ', 'linuxer',
             'slluosali', 'Vergissmeinncht', 'daydayup', 'flippedli-xiao-hua', 
             'caicodehh', 'cardioid-t', 'ou-hai-zijhu23dnz',
             'exciting-tesla7ck', 'lao-qi-e-r']
-user_list2 = ['smilecode-2'] #用于调试
+user_list2 = ['CNLYJ'] #用于调试
 
 # no_email_users = [
 #     'linuxer',
@@ -41,6 +41,39 @@ emails = {
     'ou-hai-zijhu23dnz': '196082511@qq.com'
     }
 
+def get_user_medal_info(user, date):
+    """获取用户当前的分数信息"""
+    url = 'https://leetcode.cn/graphql/noj-go/'
+    headers = {
+        "content-type": "application/json",
+    }
+    data = {
+        "query":"\n    query contestBadge($userSlug: String!) {\n  userProfileUserLevelMedal(userSlug: $userSlug) {\n    current {\n      name\n      obtainDate\n      category\n      config {\n        icon\n        iconGif\n        iconGifBackground\n      }\n      id\n      year\n      month\n      hoverText\n    }\n    next {\n      name\n      obtainDate\n      category\n      config {\n        icon\n        iconGif\n        iconGifBackground\n      }\n      id\n      year\n      month\n      hoverText\n      everOwned\n    }\n  }\n}\n    ",
+         "variables":{"userSlug":user}
+    }
+    res = requests.post(url, data=json.dumps(data), headers=headers)
+    if res.json()['data']['userProfileUserLevelMedal']['current']:
+        if res.json()['data']['userProfileUserLevelMedal']['current']['obtainDate'][:10] == date and res.json()['data']['userProfileUserLevelMedal']['current']['name'] == 'Knight':
+            return 'k'
+        else:
+            return 'g'
+    return res.json()
+
+def get_user_score_info(user):
+    """获取用户当前的分数信息"""
+    url = 'https://leetcode.cn/graphql/noj-go/'
+    headers = {
+        "content-type": "application/json",
+    }
+    data = {
+        "query": "query userContestRankingInfo($userSlug: String!) {\n  userContestRanking(userSlug: $userSlug) {\n    attendedContestsCount\n    rating\n    globalRanking\n    localRanking\n    globalTotalParticipants\n    localTotalParticipants\n    topPercentage\n  }\n  userContestRankingHistory(userSlug: $userSlug) {\n    attended\n    totalProblems\n    trendingDirection\n    finishTimeInSeconds\n    rating\n    score\n    ranking\n    contest {\n      title\n      titleCn\n      startTime\n    }\n  }\n}\n    ",
+        "variables": {
+            "userSlug": user
+        }
+    }
+    res = requests.post(url, data=json.dumps(data), headers=headers)
+    return res.json()
+
 def get_user_info(user):
     """获取用户当前的刷题信息"""
     url = 'https://leetcode.cn/graphql/noj-go/'
@@ -57,7 +90,7 @@ def get_user_info(user):
     return res.json()
 
 
-def send_email(user, file_path, dt):
+def send_email(user, file_path, dt, k_medal, g_medal):
     """
     user: 待接受邮件的用户
     file_path: 邮件的附件文件路径
@@ -69,6 +102,10 @@ def send_email(user, file_path, dt):
     ret = True
     try:
         msg = MIMEMultipart()
+        if user in k_medal:
+            msg.attach(MIMEText('恭喜你，上Knight了!', 'plain', 'utf-8'))
+        elif user in g_medal:
+            msg.attach(MIMEText('恭喜你，上Guardian了!', 'plain', 'utf-8'))
         msg.attach(MIMEText('请注意！您今天忘记刷题了吗。。。亲～', 'plain', 'utf-8'))
         msg['Subject'] = "leetcode刷题通知！"
         msg['From'] = fm_addr
@@ -89,17 +126,26 @@ def send_email(user, file_path, dt):
         print(e)
         ret = False
     return ret
-
+#  res.json()
 def stat_user_info():
     """
     统计所有用户的刷题信息并进行汇总，生成excel表，并对提供邮箱的用户发送邮件，excel作为邮件附件发送
     """
     td_infos = {}
+    k_medal = []
+    g_medal = []
+    td = datetime.date.today()
     for u in user_list:
         res = get_user_info(u)
+        score = get_user_score_info(u)
+        medal = get_user_medal_info(u,td)
+        if medal == 'k':
+            k_medal.append(u)
+        if medal == 'g':
+            g_medal.append(u)
         td_infos[u] = res['data']['userLanguageProblemCount']
-    td = datetime.date.today()
-    filepath = "./data/" + str(td)
+
+    filepath = "./data/" + str(td) + '.xls'
     with open(filepath, 'w') as fp:
         fp.write(json.dumps(td_infos))
     
@@ -149,9 +195,9 @@ def stat_user_info():
 
     save_to_excel(result, savepath)
     # 发送邮件
-    for u in user_list:
+    for u in user_list2:
         if u in emails:
-            if not send_email(u, savepath, td):
+            if not send_email(u, savepath, td, k_medal, g_medal):
                 print("{} email send fail".format(u))
     print("email send finished")
 
