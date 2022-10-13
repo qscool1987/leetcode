@@ -45,7 +45,7 @@ emails = {
     }
 
 def get_user_medal_info(user):
-    """获取用户当前的分数信息"""
+    """获取用户当前的奖牌信息"""
     url = 'https://leetcode.cn/graphql/noj-go/'
     headers = {
         "content-type": "application/json",
@@ -106,10 +106,11 @@ def send_email(user, file_path, dt, medal_history):
     try:
         msg = MIMEMultipart()
         cur_medal = get_user_medal_info(user)
-        if medal_history == 0 and cur_medal == 1:
+        if medal_history[user] == 0 and cur_medal == 1:
             msg.attach(MIMEText('恭喜你，上Knight了!', 'plain', 'utf-8'))
-        elif medal_history <= 1 and cur_medal == 2:
+        elif medal_history[user] <= 1 and cur_medal == 2:
             msg.attach(MIMEText('恭喜你，上Guardian了!', 'plain', 'utf-8'))
+        medal_history[user] = cur_medal
         msg.attach(MIMEText('请注意！您今天忘记刷题了吗。。。亲～', 'plain', 'utf-8'))
         msg['Subject'] = "leetcode刷题通知！"
         msg['From'] = fm_addr
@@ -206,9 +207,11 @@ def stat_user_info():
     # 发送邮件
     for u in user_list:
         if u in emails:
-            if not send_email(u, savepath, td, medal_history[u]):
+            if not send_email(u, savepath, td, medal_history):
                 print("{} email send fail".format(u))
     print("email send finished")
+    medal_history_pd = pd.DataFrame(medal_history, index=['medal']).T
+    medal_history_pd.to_csv(medal_file_path)
 
 
 def save_to_excel(result, savepath):
