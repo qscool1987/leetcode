@@ -1,7 +1,10 @@
 #coding=utf-8
 #!/usr/bin/env python
+import csv
 import os
 import sys
+import numpy as np
+import pandas as pd
 import json
 import requests
 import datetime
@@ -12,7 +15,7 @@ from email.utils import formataddr
 from email.mime.multipart import MIMEMultipart
 
 
-user_list = ['smilecode-2', 'aween', 'zzz-4t8', 'ChinaYC', 'CNLYJ', 'linuxer',
+user_list = ['zerotrac2','smilecode-2', 'aween', 'zzz-4t8', 'ChinaYC', 'CNLYJ', 'linuxer',
             'slluosali', 'Vergissmeinncht', 'daydayup', 'flippedli-xiao-hua', 
             'caicodehh', 'cardioid-t', 'ou-hai-zijhu23dnz',
             'exciting-tesla7ck', 'lao-qi-e-r']
@@ -41,7 +44,7 @@ emails = {
     'ou-hai-zijhu23dnz': '196082511@qq.com'
     }
 
-def get_user_medal_info(user, date):
+def get_user_medal_info(user):
     """获取用户当前的分数信息"""
     url = 'https://leetcode.cn/graphql/noj-go/'
     headers = {
@@ -51,13 +54,13 @@ def get_user_medal_info(user, date):
         "query":"\n    query contestBadge($userSlug: String!) {\n  userProfileUserLevelMedal(userSlug: $userSlug) {\n    current {\n      name\n      obtainDate\n      category\n      config {\n        icon\n        iconGif\n        iconGifBackground\n      }\n      id\n      year\n      month\n      hoverText\n    }\n    next {\n      name\n      obtainDate\n      category\n      config {\n        icon\n        iconGif\n        iconGifBackground\n      }\n      id\n      year\n      month\n      hoverText\n      everOwned\n    }\n  }\n}\n    ",
          "variables":{"userSlug":user}
     }
-    res = requests.post(url, data=json.dumps(data), headers=headers)
-    if res.json()['data']['userProfileUserLevelMedal']['current']:
-        if res.json()['data']['userProfileUserLevelMedal']['current']['obtainDate'][:10] == date and res.json()['data']['userProfileUserLevelMedal']['current']['name'] == 'Knight':
-            return 'k'
-        else:
-            return 'g'
-    return res.json()
+    res = requests.post(url, data=json.dumps(data), headers=headers).json()['data']['userProfileUserLevelMedal']['current']
+    if res:
+        if res['name'] == 'Knight':
+            return 1
+        elif res['name'] == 'Guardian':
+            return 2
+    return 0
 
 def get_user_score_info(user):
     """获取用户当前的分数信息"""
@@ -90,7 +93,7 @@ def get_user_info(user):
     return res.json()
 
 
-def send_email(user, file_path, dt, k_medal, g_medal):
+def send_email(user, file_path, dt, medal_history):
     """
     user: 待接受邮件的用户
     file_path: 邮件的附件文件路径
@@ -102,9 +105,10 @@ def send_email(user, file_path, dt, k_medal, g_medal):
     ret = True
     try:
         msg = MIMEMultipart()
-        if user in k_medal:
+        cur_medal = get_user_medal_info(user)
+        if medal_history == 0 and cur_medal == 1:
             msg.attach(MIMEText('恭喜你，上Knight了!', 'plain', 'utf-8'))
-        elif user in g_medal:
+        elif medal_history <= 1 and cur_medal == 2:
             msg.attach(MIMEText('恭喜你，上Guardian了!', 'plain', 'utf-8'))
         msg.attach(MIMEText('请注意！您今天忘记刷题了吗。。。亲～', 'plain', 'utf-8'))
         msg['Subject'] = "leetcode刷题通知！"
@@ -132,17 +136,10 @@ def stat_user_info():
     统计所有用户的刷题信息并进行汇总，生成excel表，并对提供邮箱的用户发送邮件，excel作为邮件附件发送
     """
     td_infos = {}
-    k_medal = []
-    g_medal = []
     td = datetime.date.today()
     for u in user_list:
         res = get_user_info(u)
-        score = get_user_score_info(u)
-        medal = get_user_medal_info(u,td)
-        if medal == 'k':
-            k_medal.append(u)
-        if medal == 'g':
-            g_medal.append(u)
+        # score = get_user_score_info(u)
         td_infos[u] = res['data']['userLanguageProblemCount']
 
     filepath = "./data/" + str(td) + '.xls'
@@ -152,6 +149,18 @@ def stat_user_info():
     yd = td + datetime.timedelta(days = -1)
     filepath  = "./data/" + str(yd)
     yd_infos = {}
+    medal_file_path = "./data/medal.csv"
+    medal_history = {}
+    if not os.path.exists(medal_file_path):
+        for u in user_list:
+            medal_history[u] = get_user_medal_info(u)
+        medal_history_pd = pd.DataFrame(medal_history, index=['medal']).T
+        medal_history_pd.to_csv(medal_file_path)
+    else:
+        medal_history_pd = pd.read_csv(medal_file_path)
+        for _, user_medal in medal_history_pd.iterrows():
+            medal_history[user_medal[0]] = user_medal[1]
+
     if not os.path.exists(filepath):
         print("error: yesterday stat info not exists")
     else:
@@ -197,7 +206,7 @@ def stat_user_info():
     # 发送邮件
     for u in user_list:
         if u in emails:
-            if not send_email(u, savepath, td, k_medal, g_medal):
+            if not send_email(u, savepath, td, medal_history[u]):
                 print("{} email send fail".format(u))
     print("email send finished")
 
