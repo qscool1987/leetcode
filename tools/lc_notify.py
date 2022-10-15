@@ -9,40 +9,15 @@ import json
 import requests
 import datetime
 import xlwt
+import xlrd
 import smtplib
 from email.mime.text import MIMEText
 from email.utils import formataddr
 from email.mime.multipart import MIMEMultipart
+import settings
+from lc_git_stat import stat_git_info
 
-
-user_list = ['zerotrac2','smilecode-2', 'aween', 'zzz-4t8', 'ChinaYC', 'CNLYJ', 'linuxer',
-            'slluosali', 'Vergissmeinncht', 'daydayup', 'flippedli-xiao-hua', 
-            'caicodehh', 'cardioid-t', 'ou-hai-zijhu23dnz',
-            'exciting-tesla7ck', 'lao-qi-e-r']
-user_list2 = ['CNLYJ'] #用于调试
-
-# no_email_users = [
-#     'linuxer',
-#     'cardioid-t', 
-#     'exciting-tesla7ck'
-#     ]
-
-languages = ['C++', 'Java', 'Python3', 'MySQL', 'Ruby', 'Bash', 'Go']
-
-emails = {
-    'caicodehh': '1748493969@qq.com',
-    'flippedli-xiao-hua': 'lizhenhua0202@163.com',
-    'smilecode-2': '595949643@qq.com',
-    'CNLYJ': '1910198192@qq.com',
-    'zzz-4t8': '1192963064@qq.com',
-    'aween': '376087731@qq.com',
-    'lao-qi-e-r': '2460762414@qq.com',
-    'slluosali': '1554548256@qq.com',
-    'daydayup': 'jiangwr1996@163.com',
-    'Vergissmeinncht': '1936800723@qq.com',
-    'ChinaYC': 'liuyichaochina@gmail.com',
-    'ou-hai-zijhu23dnz': '196082511@qq.com'
-    }
+user_list2 = ['smilecode-2'] #用于调试
 
 def get_user_medal_info(user):
     """获取用户当前的奖牌信息"""
@@ -75,9 +50,18 @@ def get_user_score_info(user):
         }
     }
     res = requests.post(url, data=json.dumps(data), headers=headers)
-    return res.json()
+    data = res.json().get('data')
+    if not data:
+        return 0
+    data = data.get('userContestRanking')
+    if not data:
+        return 0
+    score = data.get('rating')
+    if not score:
+        return 0
+    return int(score)
 
-def get_user_info(user):
+def get_user_lc_stat_info(user):
     """获取用户当前的刷题信息"""
     url = 'https://leetcode.cn/graphql/noj-go/'
     headers = {
@@ -90,8 +74,39 @@ def get_user_info(user):
         }
     }
     res = requests.post(url, data=json.dumps(data), headers=headers)
-    return res.json()
+    data = res.json()['data']['userLanguageProblemCount']
+    t_langinfo = {}
+    for item in data: 
+        t_langinfo[item['languageName']] = item['problemsSolved']
+    t_total = 0
+    line = [user, 0, 0, 0, 0, 0, 0]
+    for lang in settings.languages:
+        t_cnt = 0
+        if lang in t_langinfo:
+            t_cnt = t_langinfo[lang]
+        t_total += t_cnt
+        # line.append(str(t_cnt) + "<---" + str(y_cnt) + " add: " + str(t_cnt-y_cnt))
+    line[1] = str(t_total)
+    return line
 
+def load_lc_stat_inf_from_excel(filepath):
+    wb = xlrd.open_workbook(filepath)
+    sheet = wb.sheets()[0]
+    row_n = sheet.nrows
+    col_n = sheet.ncols
+    res = {}
+    for i in range(0, row_n):
+        if i == 0:
+            continue
+        info = []
+        for j in range(0, col_n):
+            info.append(sheet.cell_value(i,j))
+        if info[0] == '-':
+            continue
+        for k in range(1, len(info)):
+            info[k] = int(info[k])
+        res[info[0]] = info
+    return res
 
 def send_email(user, file_path, dt, medal_history):
     """
@@ -99,7 +114,7 @@ def send_email(user, file_path, dt, medal_history):
     file_path: 邮件的附件文件路径
     dt: 日期，用于附件的文件名
     """
-    to_addr = emails[user]
+    to_addr = settings.emails[user]
     fm_addr = '595949643@qq.com'
     pass_wd = 'zeichyzgngnlbche'
     ret = True
@@ -131,29 +146,27 @@ def send_email(user, file_path, dt, medal_history):
         print(e)
         ret = False
     return ret
-#  res.json()
+
 def stat_user_info():
     """
     统计所有用户的刷题信息并进行汇总，生成excel表，并对提供邮箱的用户发送邮件，excel作为邮件附件发送
     """
     td_infos = {}
     td = datetime.date.today()
-    for u in user_list:
-        res = get_user_info(u)
-        # score = get_user_score_info(u)
-        td_infos[u] = res['data']['userLanguageProblemCount']
-
-    filepath = "./data/" + str(td) + '.xls'
-    with open(filepath, 'w') as fp:
-        fp.write(json.dumps(td_infos))
-    
+    user_score = {}
+    git_infos = stat_git_info(td)
+    for u in settings.user_list:
+        res = get_user_lc_stat_info(u)
+        score = get_user_score_info(u)
+        user_score[u] = score
+        td_infos[u] = res
     yd = td + datetime.timedelta(days = -1)
-    filepath  = "./data/" + str(yd)
+    filepath  = "./data/" + str(yd) + '.xls'
     yd_infos = {}
     medal_file_path = "./data/medal.csv"
     medal_history = {}
     if not os.path.exists(medal_file_path):
-        for u in user_list:
+        for u in settings.user_list:
             medal_history[u] = get_user_medal_info(u)
         medal_history_pd = pd.DataFrame(medal_history, index=['medal']).T
         medal_history_pd.to_csv(medal_file_path)
@@ -165,54 +178,51 @@ def stat_user_info():
     if not os.path.exists(filepath):
         print("error: yesterday stat info not exists")
     else:
-        with open(filepath) as fp:
-            data = fp.read()
-            yd_infos = json.loads(data)
+        yd_infos = load_lc_stat_inf_from_excel(filepath) 
+
     # 对比
     td = str(td)
     yd = str(yd)
     result = []
-    for u in user_list:
-        line = []
-        itd = []
-        if u in td_infos:
-            itd = td_infos[u]
-        iyd = []
+    for u in settings.user_list:
+        y_l = []
         if u in yd_infos:
-            iyd = yd_infos[u]
-        t_langinfo = {}
-        for item in itd:
-            t_langinfo[item['languageName']] = item['problemsSolved']
-        y_langinfo = {}
-        for item in iyd:
-            y_langinfo[item['languageName']] = item['problemsSolved']
-        t_total = 0
-        y_total = 0
-        for lang in languages:
-            t_cnt = 0
-            if lang in t_langinfo:
-                t_cnt = t_langinfo[lang]
-            t_total += t_cnt
-            y_cnt = 0
-            if lang in y_langinfo:
-                y_cnt = y_langinfo[lang]
-            y_total += y_cnt
-            # line.append(str(t_cnt) + "<---" + str(y_cnt) + " add: " + str(t_cnt-y_cnt))
-            line.append(str(t_cnt-y_cnt))
-        line = [u, str(t_total) + "<--" + str(y_total)] + line
-        result.append(line)
-    savepath = "./result/" + td + ".xls"
-
+            y_l = yd_infos[u]
+        t_l = []
+        if u in td_infos:
+            t_l = td_infos[u]
+        else:
+            continue
+        if u in settings.lc_to_git:
+            git_u = settings.lc_to_git[u]
+            ln, lt = git_infos[git_u]
+            t_l[2] = ln
+            t_l[3] = lt
+        if u in user_score:
+            t_l[4] = user_score[u]
+       
+        if len(y_l) == 0:
+            t_l[6] = t_l[1]
+            t_l[5] = 1
+        else:
+            diff_t = int(t_l[1]) - int(y_l[1])
+            t_l[6] = diff_t
+            if diff_t > 0:
+                t_l[5] += int(y_l[5]) + 1
+            else:
+                t_l[5] = 0
+        result.append(t_l)
+    # 将今日统计信息进行保存
+    savepath = "./data/" + td + ".xls"
     save_to_excel(result, savepath)
     # 发送邮件
-    for u in user_list:
-        if u in emails:
+    for u in settings.user_list:
+        if u in settings.emails:
             if not send_email(u, savepath, td, medal_history):
                 print("{} email send fail".format(u))
     print("email send finished")
     medal_history_pd = pd.DataFrame(medal_history, index=['medal']).T
     medal_history_pd.to_csv(medal_file_path)
-
 
 def save_to_excel(result, savepath):
     """
@@ -222,7 +232,7 @@ def save_to_excel(result, savepath):
     """
     book = xlwt.Workbook(encoding='utf-8',style_compression=0)
     sheet = book.add_sheet('leetcode',cell_overwrite_ok=True)
-    columns = ['用户', '题量'] + languages
+    columns = settings.excel_cols
     for i in range(0, len(columns)):
         sheet.write(0, i, columns[i])
     for i in range(0, len(result)+1):
