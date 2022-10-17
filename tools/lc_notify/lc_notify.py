@@ -17,29 +17,12 @@ from email.mime.multipart import MIMEMultipart
 import settings
 from lc_git_stat import stat_git_info
 from loghandle import logger
-import pymysql
+import mysql_service
 
 user_list2 = ['smilecode-2'] #用于调试
 
-def connect_mysql():
-    port = 3306
-    host = 'localhost'
-    user = 'root'
-    passwd = 'qscool'
-    dbname = 'leetcode'
-    try:
-        conn = pymysql.connect(
-            host=host,
-            user=user,
-            passwd=passwd,
-            db=dbname,
-            port=port
-            )
-        return conn
-    except Exception as e:
-        logger.error(e)
-        return None
-    return None     
+# 数据库服务对象
+sql_service = mysql_service.mysqlService()  
 
 def get_user_medal_info(user):
     """获取用户当前的奖牌信息"""
@@ -107,11 +90,13 @@ def get_user_lc_stat_info(user):
         if lang in t_langinfo:
             t_cnt = t_langinfo[lang]
         t_total += t_cnt
-        # line.append(str(t_cnt) + "<---" + str(y_cnt) + " add: " + str(t_cnt-y_cnt))
     line[1] = str(t_total)
     return line
 
 def load_lc_stat_inf_from_excel(filepath):
+    """
+    已经不在从excel中读取前一天的数据, 该函数不在使用
+    """
     wb = xlrd.open_workbook(filepath)
     sheet = wb.sheets()[0]
     row_n = sheet.nrows
@@ -135,6 +120,7 @@ def send_email(user, file_path, dt, medal_history):
     user: 待接受邮件的用户
     file_path: 邮件的附件文件路径
     dt: 日期，用于附件的文件名
+    注意: 暂时采用发邮件的方式通知用户, 当网站搭建完毕后将弃用
     """
     to_addr = settings.emails[user]
     fm_addr = '595949643@qq.com'
@@ -144,8 +130,10 @@ def send_email(user, file_path, dt, medal_history):
         msg = MIMEMultipart()
         cur_medal = get_user_medal_info(user)
         if medal_history[user] == 0 and cur_medal == 1:
+            sql_service.update_user_medal(user, cur_medal)
             msg.attach(MIMEText('恭喜你，上Knight了!', 'plain', 'utf-8'))
         elif medal_history[user] <= 1 and cur_medal == 2:
+            sql_service.update_user_medal(user, cur_medal)
             msg.attach(MIMEText('恭喜你，上Guardian了!', 'plain', 'utf-8'))
         medal_history[user] = cur_medal
         msg.attach(MIMEText('请注意！您今天忘记刷题了吗。。。亲～', 'plain', 'utf-8'))
@@ -183,28 +171,13 @@ def stat_user_info():
         user_score[u] = score
         td_infos[u] = res
     yd = td + datetime.timedelta(days = -1)
-    filepath  = "./data/" + str(yd) + '.xls'
-    yd_infos = {}
-    medal_file_path = "./data/medal.csv"
-    medal_history = {}
-    if not os.path.exists(medal_file_path):
-        for u in settings.user_list:
-            medal_history[u] = get_user_medal_info(u)
-        medal_history_pd = pd.DataFrame(medal_history, index=['medal']).T
-        medal_history_pd.to_csv(medal_file_path)
-    else:
-        medal_history_pd = pd.read_csv(medal_file_path)
-        for _, user_medal in medal_history_pd.iterrows():
-            medal_history[user_medal[0]] = user_medal[1]
-
-    if not os.path.exists(filepath):
-        logger.warning("error: yesterday stat info not exists")
-    else:
-        yd_infos = load_lc_stat_inf_from_excel(filepath) 
-
-    # 对比
     td = str(td)
     yd = str(yd)
+    # 从数据库加载昨天的统计信息, 账户映射信息, 奖牌信息
+    yd_infos = sql_service.load_user_daily_info(yd)
+    lc_to_git, medal_history = sql_service.load_account_info()
+
+    # 对比
     result = []
     for u in settings.user_list:
         y_l = []
@@ -215,14 +188,13 @@ def stat_user_info():
             t_l = td_infos[u]
         else:
             continue
-        if u in settings.lc_to_git:
-            git_u = settings.lc_to_git[u]
+        if u in lc_to_git:
+            git_u = lc_to_git[u]
             ln, lt = git_infos[git_u]
             t_l[2] = ln
             t_l[3] = lt
         if u in user_score:
             t_l[4] = user_score[u]
-       
         if len(y_l) == 0:
             t_l[6] = t_l[1]
             t_l[5] = 1
@@ -237,19 +209,15 @@ def stat_user_info():
     # 将今日统计信息进行保存
     savepath = "./data/" + td + ".xls"
     save_to_excel(result, savepath)
-
-    # 将今日统计信息写入mysql
-    # todo 后续替换成mysql管理统计信息
-    write_user_daily_info_to_mysql(td, savepath)
+    # 将今日统计信息写入数据库
+    sql_service.add_user_daily_info(td, result)
 
     # 发送邮件
-    for u in settings.user_list:
+    for u in settings.user_list2:
         if u in settings.emails:
             if not send_email(u, savepath, td, medal_history):
                 logger.warning("{} email send fail".format(u))
     logger.info("email send finished")
-    medal_history_pd = pd.DataFrame(medal_history, index=['medal']).T
-    medal_history_pd.to_csv(medal_file_path)
 
 def save_to_excel(result, savepath):
     """
@@ -270,44 +238,8 @@ def save_to_excel(result, savepath):
         data = result[i]
         for j in range(0, len(columns)):
             sheet.write(i+1,j,data[j])
-        
-    # savepath = "./result/" + dt + ".xls"
     book.save(savepath)
 
-def write_user_daily_info_to_mysql(date, filepath):
-    #filepath = './data/2022-10-16.xls'
-    res = load_lc_stat_inf_from_excel(filepath)
-    conn = connect_mysql()
-    #date = '2022-10-16'
-    if not conn:
-        sys.exit(1)
-    cur = conn.cursor()
-    for u in res:
-        data = res[u]
-        user = data[0]
-        total = int(data[1])
-        code_submit = int(data[2])
-        problem_submit = int(data[3])
-        score = int(data[4])
-        days = int(data[5])
-        new_solve = int(data[6])
-        sql = "insert into user_lc_daily_info (user,total_solve, code_submit, problem_submit, \
-                rating_score, continue_days, new_solve, date_time) values ('%s',%s,\
-                %s, %s, %s, %s, %s, '%s')" % (user, total, code_submit, problem_submit, score, \
-                days, new_solve, date)
-        logger.info(sql)
-        try:
-            cur.execute(sql)
-            conn.commit()
-        except Exception as e:
-            logger.error(e)
-            conn.rollback()
-            cur.close()
-            conn.close()
-            return False
-    cur.close()
-    conn.close()
-    logger.info("insert into mysql succ")
-    return True
 
-stat_user_info()
+if __name__ == '__main__':
+    stat_user_info()
