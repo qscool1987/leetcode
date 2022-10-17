@@ -1,3 +1,6 @@
+#coding=utf-8
+import os
+
 user_list = ['zerotrac2','smilecode-2', 'aween', 'zzz-4t8', 'ChinaYC', 'CNLYJ', 'linuxer',
             'slluosali', 'Vergissmeinncht', 'daydayup', 'flippedli-xiao-hua', 
             'caicodehh', 'cardioid-t', 'ou-hai-zijhu23dnz',
@@ -38,3 +41,14 @@ lc_to_git = {
         'caicodehh': 'CsustHh'
         }
 excel_cols = ['用户', '题量', '代码行数', '题目贡献', '竞赛分数', '连续打卡', '今日刷题']
+
+confFile = "global"
+CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))
+ROOT_PATH = CURRENT_PATH
+LOG_PATH = os.path.join(ROOT_PATH, 'log')
+# GLOBAL_CONF_PATH = os.path.join(ROOT_PATH, 'conf')
+DATA_PATH = os.path.join(ROOT_PATH, 'data')
+
+
+if __name__ == '__main__':
+    print(CURRENT_PATH, ROOT_PATH, LOG_PATH, DATA_PATH)
