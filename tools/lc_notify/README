@@ -1,0 +1,10 @@
+# log 说明
+# lc_notify.log 为lc_notify.py运行时的日志
+# web_server_access.log 为supervisor launch app.py web服务的日志
+# web_server_err.log 为supervisor launch app.py web服务时的错误日志
+
+app.py 为flask 搭建的web服务，由 supervisor负责管理 
+/etc/supervisord.d/flask_web_app.ini 为app.py启动的配置文件
+
+web目录为前端项目目录，开发完成后将部署到/usr/share/nginx/html/leetcode下
+

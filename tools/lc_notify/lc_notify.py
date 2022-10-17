@@ -16,8 +16,30 @@ from email.utils import formataddr
 from email.mime.multipart import MIMEMultipart
 import settings
 from lc_git_stat import stat_git_info
+from loghandle import logger
+import pymysql
 
 user_list2 = ['smilecode-2'] #用于调试
+
+def connect_mysql():
+    port = 3306
+    host = 'localhost'
+    user = 'root'
+    passwd = 'qscool'
+    dbname = 'leetcode'
+    try:
+        conn = pymysql.connect(
+            host=host,
+            user=user,
+            passwd=passwd,
+            db=dbname,
+            port=port
+            )
+        return conn
+    except Exception as e:
+        logger.error(e)
+        return None
+    return None     
 
 def get_user_medal_info(user):
     """获取用户当前的奖牌信息"""
@@ -143,7 +165,7 @@ def send_email(user, file_path, dt, medal_history):
         smtp.sendmail(fm_addr, to_addr, msg.as_string())  # 括号中对应的是发件人邮箱账号、收件人邮箱账号、发送邮件
         smtp.quit()  # 关闭连接
     except Exception as e:  
-        print(e)
+        logger.error(e)
         ret = False
     return ret
 
@@ -176,7 +198,7 @@ def stat_user_info():
             medal_history[user_medal[0]] = user_medal[1]
 
     if not os.path.exists(filepath):
-        print("error: yesterday stat info not exists")
+        logger.warning("error: yesterday stat info not exists")
     else:
         yd_infos = load_lc_stat_inf_from_excel(filepath) 
 
@@ -215,12 +237,17 @@ def stat_user_info():
     # 将今日统计信息进行保存
     savepath = "./data/" + td + ".xls"
     save_to_excel(result, savepath)
+
+    # 将今日统计信息写入mysql
+    # todo 后续替换成mysql管理统计信息
+    write_user_daily_info_to_mysql(td, savepath)
+
     # 发送邮件
     for u in settings.user_list:
         if u in settings.emails:
             if not send_email(u, savepath, td, medal_history):
-                print("{} email send fail".format(u))
-    print("email send finished")
+                logger.warning("{} email send fail".format(u))
+    logger.info("email send finished")
     medal_history_pd = pd.DataFrame(medal_history, index=['medal']).T
     medal_history_pd.to_csv(medal_file_path)
 
@@ -246,6 +273,41 @@ def save_to_excel(result, savepath):
         
     # savepath = "./result/" + dt + ".xls"
     book.save(savepath)
-    
+
+def write_user_daily_info_to_mysql(date, filepath):
+    #filepath = './data/2022-10-16.xls'
+    res = load_lc_stat_inf_from_excel(filepath)
+    conn = connect_mysql()
+    #date = '2022-10-16'
+    if not conn:
+        sys.exit(1)
+    cur = conn.cursor()
+    for u in res:
+        data = res[u]
+        user = data[0]
+        total = int(data[1])
+        code_submit = int(data[2])
+        problem_submit = int(data[3])
+        score = int(data[4])
+        days = int(data[5])
+        new_solve = int(data[6])
+        sql = "insert into user_lc_daily_info (user,total_solve, code_submit, problem_submit, \
+                rating_score, continue_days, new_solve, date_time) values ('%s',%s,\
+                %s, %s, %s, %s, %s, '%s')" % (user, total, code_submit, problem_submit, score, \
+                days, new_solve, date)
+        logger.info(sql)
+        try:
+            cur.execute(sql)
+            conn.commit()
+        except Exception as e:
+            logger.error(e)
+            conn.rollback()
+            cur.close()
+            conn.close()
+            return False
+    cur.close()
+    conn.close()
+    logger.info("insert into mysql succ")
+    return True
 
 stat_user_info()
