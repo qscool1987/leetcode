@@ -1,28 +1,18 @@
 #coding=utf-8
 #!/usr/bin/env python
-import csv
-import os
-import sys
-import numpy as np
-import pandas as pd
 import json
 import requests
 import datetime
-import xlwt
-import xlrd
-import smtplib
-from email.mime.text import MIMEText
-from email.utils import formataddr
-from email.mime.multipart import MIMEMultipart
 import settings
 from lc_git_stat import stat_git_info
 from loghandle import logger
 import mysql_service
+import email_service
 
 user_list2 = ['smilecode-2'] #用于调试
 
 # 数据库服务对象
-sql_service = mysql_service.mysqlService()  
+sql_service = mysql_service.MysqlService()  
 
 def get_user_medal_info(user):
     """获取用户当前的奖牌信息"""
@@ -106,7 +96,7 @@ def stat_user_info():
     yd = str(yd)
     # 从数据库加载昨天的统计信息, 账户映射信息, 奖牌信息
     yd_infos = sql_service.load_user_daily_info(yd)
-    lc_to_git, medal_history = sql_service.load_account_info()
+    lc_to_git, medal_history, user_award, user_email = sql_service.load_account_info()
     user_list = []
     for u in medal_history:
         user_list.append(u)
@@ -125,14 +115,18 @@ def stat_user_info():
         if u in lc_to_git:
             git_info = stat_git_info(td, lc_to_git[u])
             git_infos[u] = git_info
+    user_award_info = {}
     # 处理medal
     for u in td_medals:
         if u not in medal_history:
             sql_service.add_account_info(u, '', td_medals[u])
         else:
             history = int(medal_history[u])
-            if history < td_medals[u]:
-                sql_service.update_user_medal(u, td_medals[u])
+            user_award_info[u] = [history, 0]
+            # 对比历史，如果比历史成绩好则更新
+            if (history & td_medals[u]) == 0:
+                history += td_medals[u] 
+                user_award_info[u] = [history, td_medals[u]]  
     # 对比
     result = []
     for u in user_list:
@@ -160,13 +154,32 @@ def stat_user_info():
                 t_l[5] += int(y_l[5]) + 1
             else:
                 t_l[5] = 0
+        if t_l[2] >= 1000 and (user_award_info[u][0] & settings.MedalType.CodeSubmit) == 0:
+            user_award_info[u][0] += settings.MedalType.CodeSubmit
+            user_award_info[u][1] = settings.MedalType.CodeSubmit
+        if t_l[3] >= 50 and (user_award_info[u][0] & settings.MedalType.ProblemSubmit) == 0:
+            user_award_info[u][0] += settings.MedalType.ProblemSubmit
+            user_award_info[u][1] = settings.MedalType.ProblemSubmit
+        if t_l[5] >= 100 and (user_award_info[u][0] & settings.MedalType.ContinueDays) == 0:
+            user_award_info[u][0] += settings.MedalType.ContinueDays
+            user_award_info[u][1] = settings.MedalType.ContinueDays
         result.append(t_l)
     logger.info(result)
 
     # 将今日统计信息写入数据库
     sql_service.add_user_daily_info(td, result)
     logger.info("add into mysql finished")
+    # 发送邮件
+    emailobj = email_service.EmailService(user_email)
+    for u in user_award_info:
+        if user_award[u] == 0 and user_award_info[u][1] > 0:
+            emailobj.send_email(u, user_award_info[u][1], True)
+            sql_service.update_user_award(u, 1)
+        elif user_award_info[u][1] > 0 and (medal_history[u] & user_award_info[u][1]) == 0:
+            emailobj.send_email(u, user_award_info[u][1], False)
+        sql_service.update_user_medal(u, user_award_info[u][0])
 
 
 if __name__ == '__main__':
     stat_user_info()
+    # send_email("smilecode-2", 2, 1)
