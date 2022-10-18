@@ -93,93 +93,49 @@ def get_user_lc_stat_info(user):
     line[1] = str(t_total)
     return line
 
-def load_lc_stat_inf_from_excel(filepath):
-    """
-    已经不在从excel中读取前一天的数据, 该函数不在使用
-    """
-    wb = xlrd.open_workbook(filepath)
-    sheet = wb.sheets()[0]
-    row_n = sheet.nrows
-    col_n = sheet.ncols
-    res = {}
-    for i in range(0, row_n):
-        if i == 0:
-            continue
-        info = []
-        for j in range(0, col_n):
-            info.append(sheet.cell_value(i,j))
-        if info[0] == '-':
-            continue
-        for k in range(1, len(info)):
-            info[k] = int(info[k])
-        res[info[0]] = info
-    return res
-
-def send_email(user, file_path, dt, medal_history):
-    """
-    user: 待接受邮件的用户
-    file_path: 邮件的附件文件路径
-    dt: 日期，用于附件的文件名
-    注意: 暂时采用发邮件的方式通知用户, 当网站搭建完毕后将弃用
-    """
-    to_addr = settings.emails[user]
-    fm_addr = '595949643@qq.com'
-    pass_wd = 'zeichyzgngnlbche'
-    ret = True
-    try:
-        msg = MIMEMultipart()
-        cur_medal = get_user_medal_info(user)
-        if medal_history[user] == 0 and cur_medal == 1:
-            sql_service.update_user_medal(user, cur_medal)
-            msg.attach(MIMEText('恭喜你，上Knight了!', 'plain', 'utf-8'))
-        elif medal_history[user] <= 1 and cur_medal == 2:
-            sql_service.update_user_medal(user, cur_medal)
-            msg.attach(MIMEText('恭喜你，上Guardian了!', 'plain', 'utf-8'))
-        medal_history[user] = cur_medal
-        msg.attach(MIMEText('请注意！您今天忘记刷题了吗。。。亲～', 'plain', 'utf-8'))
-        msg['Subject'] = "leetcode刷题通知！"
-        msg['From'] = fm_addr
-        msg['To'] = to_addr
-        # 构造附件
-        filename = 'leetcode_' + dt + '.xls'
-        att = MIMEText(open(file_path, 'rb').read(), 'base64', 'gb2312')
-        att["Content-Type"] = 'application/octet-stream'
-        att.add_header("Content-Disposition", 'attachment', filename=filename)
-        msg.attach(att)
-        # 创建 SMTP 对象
-        smtp = smtplib.SMTP_SSL("smtp.qq.com")
-        # 登录，需要：登录邮箱和授权码
-        smtp.login(user=fm_addr, password=pass_wd)
-        smtp.sendmail(fm_addr, to_addr, msg.as_string())  # 括号中对应的是发件人邮箱账号、收件人邮箱账号、发送邮件
-        smtp.quit()  # 关闭连接
-    except Exception as e:  
-        logger.error(e)
-        ret = False
-    return ret
-
 def stat_user_info():
     """
     统计所有用户的刷题信息并进行汇总，生成excel表，并对提供邮箱的用户发送邮件，excel作为邮件附件发送
     """
-    td_infos = {}
     td = datetime.date.today()
-    user_score = {}
-    git_infos = stat_git_info(td)
-    for u in settings.user_list:
-        res = get_user_lc_stat_info(u)
-        score = get_user_score_info(u)
-        user_score[u] = score
-        td_infos[u] = res
     yd = td + datetime.timedelta(days = -1)
+    td_infos = {}
+    user_score = {}
+    git_infos = {}
     td = str(td)
     yd = str(yd)
     # 从数据库加载昨天的统计信息, 账户映射信息, 奖牌信息
     yd_infos = sql_service.load_user_daily_info(yd)
     lc_to_git, medal_history = sql_service.load_account_info()
-
+    user_list = []
+    for u in medal_history:
+        user_list.append(u)
+    td_medals = {}
+    for u in user_list:
+        # 获取刷题信息
+        res = get_user_lc_stat_info(u)
+        td_infos[u] = res
+        # 获取竞赛分数信息
+        score = get_user_score_info(u)
+        user_score[u] = score
+        # 获取奖牌信息
+        cur_medal = get_user_medal_info(u)
+        td_medals[u] = cur_medal
+        # 获取git代码贡献信息
+        if u in lc_to_git:
+            git_info = stat_git_info(td, lc_to_git[u])
+            git_infos[u] = git_info
+    # 处理medal
+    for u in td_medals:
+        if u not in medal_history:
+            sql_service.add_account_info(u, '', td_medals[u])
+        else:
+            history = int(medal_history[u])
+            if history < td_medals[u]:
+                sql_service.update_user_medal(u, td_medals[u])
     # 对比
     result = []
-    for u in settings.user_list:
+    for u in user_list:
         y_l = []
         if u in yd_infos:
             y_l = yd_infos[u]
@@ -189,8 +145,7 @@ def stat_user_info():
         else:
             continue
         if u in lc_to_git:
-            git_u = lc_to_git[u]
-            ln, lt = git_infos[git_u]
+            ln, lt = git_infos[u]
             t_l[2] = ln
             t_l[3] = lt
         if u in user_score:
@@ -206,39 +161,11 @@ def stat_user_info():
             else:
                 t_l[5] = 0
         result.append(t_l)
-    # 将今日统计信息进行保存
-    savepath = "./data/" + td + ".xls"
-    save_to_excel(result, savepath)
+    logger.info(result)
+
     # 将今日统计信息写入数据库
     sql_service.add_user_daily_info(td, result)
-
-    # 发送邮件
-    for u in settings.user_list2:
-        if u in settings.emails:
-            if not send_email(u, savepath, td, medal_history):
-                logger.warning("{} email send fail".format(u))
-    logger.info("email send finished")
-
-def save_to_excel(result, savepath):
-    """
-    将result的内容写入到savepath文件中，存储为.xls格式
-    result: 写入到excel表的内容
-    savepath: excel表的文件名
-    """
-    book = xlwt.Workbook(encoding='utf-8',style_compression=0)
-    sheet = book.add_sheet('leetcode',cell_overwrite_ok=True)
-    columns = settings.excel_cols
-    for i in range(0, len(columns)):
-        sheet.write(0, i, columns[i])
-    for i in range(0, len(result)+1):
-        if i == len(result):
-            for j in range(0, len(columns)):
-                sheet.write(i+1, j, '-')
-            break
-        data = result[i]
-        for j in range(0, len(columns)):
-            sheet.write(i+1,j,data[j])
-    book.save(savepath)
+    logger.info("add into mysql finished")
 
 
 if __name__ == '__main__':

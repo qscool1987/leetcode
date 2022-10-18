@@ -12,7 +12,7 @@ class mysqlService(object):
     USER_LC_DAILY_INFO_FIELDS = ['user', 'total_solve', 'code_submit', 
             'problem_submit', 'rating_score', 'continue_days',
             'new_solve', 'date_time']
-    ACCOUNT_INFO_FIELDS = ['user', 'git_account', 'medal']
+    ACCOUNT_INFO_FIELDS = ['user', 'git_account', 'medal', 'award']
 
     def __init__(self):
         self.port = 3306
@@ -121,7 +121,8 @@ class mysqlService(object):
             user_to_git = {}
             user_medal = {}
             for data in self.cur.fetchall():
-                user_to_git[data[0]] = data[1]
+                if data[1] != '':
+                    user_to_git[data[0]] = data[1]
                 user_medal[data[0]] = data[2]
             return user_to_git, user_medal
         except Exception as e:

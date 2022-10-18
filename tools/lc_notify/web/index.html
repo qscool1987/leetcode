@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Demo1</title>
+    <title>leetcodehappy</title>
     <style type="text/css">
         * {
             margin: 0;
@@ -41,9 +41,8 @@
 
         table {
             border: 1px solid #ccc;
-
             border-collapse: collapse;
-
+            margin: auto;
         }
 
         th,
@@ -56,31 +55,21 @@
         }
 
         th {
-
             background-color: skyblue;
-
             color: #fff;
-
         }
 
         td {
-
             font-size: 14px;
-
         }
 
         table tr {
-
             background-color: #f0f0f0;
-
         }
 
         table tr:hover {
-
             background-color: #fafafa;
-
             cursor: pointer;
-
         }
 
         .div {
@@ -112,11 +101,16 @@
                 var html_str = "";
                 for (var i = 0; i < data.length; ++i) {
                     console.log(data[i]);
-                    html_str += "<tr><td>" + data[i][0] + "</td><td>" + data[i][1] + "</td><td>" + data[i][2] + "</td></tr>"
+                    html_str += "<tr>";
+                    for (var j = 0; j < data[i].length; ++j) {
+                        html_str += "<td>" + data[i][j] + "</td>";
+                    }
+                    html_str += "</tr>";
                 }
                 $("#git_stat_info").html(html_str);
             }
-            $("#bt").click(function () {
+            // $("#bt").click(function () {
+            $.get_daily_stat_info = function () {
                 $.ajax({
                     type: "get",        // 请求方式
                     url: "http://120.46.150.151/user_info", // 请求路径
@@ -125,24 +119,30 @@
                         $.create_git_table(data);
                     }
                 });
-            });
+            }
+            $.get_daily_stat_info();
         });
     </script>
 </head>
 
 <body>
     <div id="nav">
-        <h1>happy leetcode</h1>
-        <div class="div">
+        <h1>每日信息汇总</h1>
+        <!-- <div class="div">
             <button id="bt" style="border-color: transparent; color: blueviolet;">查询用户数据</button>
-        </div>
+        </div> -->
         <p></p>
-        <table>
+        <table class="info_table">
             <thead>
                 <tr>
                     <th>用户</th>
+                    <th>总刷题量</th>
                     <th>代码行数贡献</th>
                     <th>代码题量贡献</th>
+                    <th>竞赛分数</th>
+                    <th>连续打卡天数</th>
+                    <th>今日刷题数量</th>
+                    <th>日期</th>
                 </tr>
             </thead>
             <tbody id="git_stat_info">
