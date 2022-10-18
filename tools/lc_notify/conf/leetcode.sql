@@ -9,7 +9,6 @@ create table user_lc_daily_info (
 	new_solve int not null default 0,
 	date_time datetime not null,
 	primary key(id),
-	unique (user),
 	index idx_date_time(date_time),
 	index idx_user(user)
 ) engine=innoDB default charset=utf8;
@@ -19,6 +18,7 @@ create table account_info (
 	id int auto_increment,
 	user varchar(128) not null default '',
 	git_account varchar(128) not null default '',
+	medal int not null default 0,
 	primary key(id),
 	unique (user),
 	unique (git_account)
