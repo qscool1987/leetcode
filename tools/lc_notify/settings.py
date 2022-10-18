@@ -1,18 +1,6 @@
 #coding=utf-8
 import os
 
-user_list = ['zerotrac2','smilecode-2', 'aween', 'zzz-4t8', 'ChinaYC', 'CNLYJ', 'linuxer',
-            'slluosali', 'Vergissmeinncht', 'daydayup', 'flippedli-xiao-hua', 
-            'caicodehh', 'cardioid-t', 'ou-hai-zijhu23dnz',
-            'exciting-tesla7ck', 'lao-qi-e-r']
-user_list2 = ['smilecode-2'] #用于调试
-
-# no_email_users = [
-#     'linuxer',
-#     'cardioid-t', 
-#     'exciting-tesla7ck'
-#     ]
-
 languages = ['C++', 'Java', 'Python3', 'MySQL', 'Ruby', 'Bash', 'Go']
 
 emails = {
@@ -29,18 +17,6 @@ emails = {
     'ChinaYC': 'liuyichaochina@gmail.com',
     'ou-hai-zijhu23dnz': '196082511@qq.com'
     }
-
-git_users = ['qscool1987', 'Yunjia Liu', 'BigDataHua', 'CsustHh', 
-        'yinghuacao282428','Ruinenstadt9029']
-
-lc_to_git = {
-        'smilecode-2': 'qscool1987', 
-        'CNLYJ': 'Yunjia Liu',
-        'flippedli-xiao-hua': 'BigDataHua',
-        'Vergissmeinncht': 'Ruinenstadt9029',
-        'caicodehh': 'CsustHh'
-        }
-excel_cols = ['用户', '题量', '代码行数', '题目贡献', '竞赛分数', '连续打卡', '今日刷题']
 
 confFile = "global"
 CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))

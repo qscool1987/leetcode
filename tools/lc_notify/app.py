@@ -23,7 +23,7 @@ def get_user_info():
       for item in data[u]:
          line.append(str(item))
       info.append(line)
-   logger.info(info)
+   # logger.info(info)
    return json.dumps(info)
 
 if __name__ == '__main__':
