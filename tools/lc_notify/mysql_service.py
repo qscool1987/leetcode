@@ -22,9 +22,9 @@ class mysqlService(object):
         self.db = 'leetcode'
         self.conn = None
         self.cur = None
-        self._connect_mysql()
-        if not self.conn:
-            sys.exit(1)
+        # self._connect_mysql()
+        # if not self.conn:
+        #     sys.exit(1)
 
     def _connect_mysql(self):
         try:
@@ -44,6 +44,8 @@ class mysqlService(object):
             return False
     
     def add_user_daily_info(self, date, datalist):
+        if not self._connect_mysql():
+            return False
         presql = "insert into " + self.USER_LC_DAILY_INFO_TABLE
         presql += " (" + ",".join(self.USER_LC_DAILY_INFO_FIELDS) + ")"   
         for data in datalist:
@@ -72,6 +74,8 @@ class mysqlService(object):
         return True
 
     def load_user_daily_info(self, date):
+        if not self._connect_mysql():
+            return False
         sql = "select " + ",".join(self.USER_LC_DAILY_INFO_FIELDS) + \
             " from " + self.USER_LC_DAILY_INFO_TABLE + " where date_time = '%s'" % date
         try:
@@ -79,6 +83,8 @@ class mysqlService(object):
             res = {}
             for data in self.cur.fetchall():
                 res[data[0]] = data
+            self.cur.close()
+            self.conn.close()
             return res
         except Exception as e:
             logger.error(e)
@@ -87,11 +93,15 @@ class mysqlService(object):
             return None
 
     def update_user_medal(self, user, medal):
+        if not self._connect_mysql():
+            return False
         sql = "update " + self.ACCOUNT_INFO_TABLE + " set medal = %s \
             where user = '%s'" % (medal, user)
         try:
             self.cur.execute(sql)
             self.conn.commit()
+            self.cur.close()
+            self.conn.close()
         except Exception as e:
             logger.error(e)
             self.conn.rollback()
@@ -100,12 +110,16 @@ class mysqlService(object):
             return False
 
     def add_account_info(self, user, git_user, medal=0):
+        if not self._connect_mysql():
+            return False
         sql = "insert into " + self.ACCOUNT_INFO_TABLE + " (" + \
             ",".join(self.ACCOUNT_INFO_FIELDS) + ") values('%s', '%s', %s)" \
                 % (user, git_user, medal)
         try:
             self.cur.execute(sql)
             self.conn.commit()
+            self.cur.close()
+            self.conn.close()
         except Exception as e:
             logger.error(e)
             self.conn.rollback()
@@ -114,6 +128,8 @@ class mysqlService(object):
             return False
 
     def load_account_info(self):
+        if not self._connect_mysql():
+            return False
         sql = "select " + ",".join(self.ACCOUNT_INFO_FIELDS) + \
             " from " + self.ACCOUNT_INFO_TABLE
         try:
@@ -124,6 +140,8 @@ class mysqlService(object):
                 if data[1] != '':
                     user_to_git[data[0]] = data[1]
                 user_medal[data[0]] = data[2]
+            self.cur.close()
+            self.conn.close()
             return user_to_git, user_medal
         except Exception as e:
             logger.error(e)
