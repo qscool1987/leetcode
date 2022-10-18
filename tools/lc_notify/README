@@ -3,8 +3,18 @@
 # web_server_access.log 为supervisor launch app.py web服务的日志
 # web_server_err.log 为supervisor launch app.py web服务时的错误日志
 
-app.py 为flask 搭建的web服务，由 supervisor负责管理 
-/etc/supervisord.d/flask_web_app.ini 为app.py启动的配置文件
+# 整体框架
+./bin/run.sh # 离线脚本，由crontab负责定时启动，将统计信息写入数据库
 
-web目录为前端项目目录，开发完成后将部署到/usr/share/nginx/html/leetcode下
+# 后端服务
+# flask 搭建的web服务，由 supervisor负责管理 
+app.py # 负责提供后端接口, 提供所需要的数据
+supervisorctl status # 查看服务状态 
+supervisorctl stop flask_web_app # 停止服务
+supervisorctl start flask_web_app # 启动服务
+# supervisor 启动配置文件
+/etc/supervisord.d/flask_web_app.ini # 启动app.py
+
+# 前端服务
+# web目录为前端项目目录，开发完成后将部署到/usr/share/nginx/html/leetcode下
 
