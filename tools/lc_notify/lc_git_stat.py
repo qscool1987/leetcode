@@ -22,5 +22,5 @@ def stat_git_info(td, git_user):
 
 
 if __name__ == '__main__':
-    res = stat_git_info('2022-10-15', 'qscool1987')
+    res = stat_git_info('2022-10-18', 'qscool1987')
     print(res)

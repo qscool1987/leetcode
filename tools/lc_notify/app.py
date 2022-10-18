@@ -5,7 +5,7 @@ import json
 import mysql_service
 from loghandle import logger
 
-sql_service = mysql_service.mysqlService()
+sql_service = mysql_service.MysqlService()
 
 
 app = Flask(__name__)

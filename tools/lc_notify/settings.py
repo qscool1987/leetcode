@@ -25,6 +25,17 @@ LOG_PATH = os.path.join(ROOT_PATH, 'log')
 GLOBAL_CONF_PATH = os.path.join(ROOT_PATH, 'conf')
 DATA_PATH = os.path.join(ROOT_PATH, 'data')
 
+class MedalType:
+    """
+    奖励类型
+    """
+    Knight = 1
+    Guardian = 2
+    CodeSubmit = 4
+    ProblemSubmit = 8
+    ContinueDays = 16
+
+
 
 if __name__ == '__main__':
     print(CURRENT_PATH, ROOT_PATH, LOG_PATH, DATA_PATH)
