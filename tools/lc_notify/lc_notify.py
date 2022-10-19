@@ -8,6 +8,7 @@ from lc_git_stat import stat_git_info
 from loghandle import logger
 import mysql_service
 import email_service
+import sys
 
 user_list2 = ['smilecode-2'] #用于调试
 
@@ -70,6 +71,8 @@ def get_user_lc_stat_info(user):
     }
     res = requests.post(url, data=json.dumps(data), headers=headers)
     data = res.json()['data']['userLanguageProblemCount']
+    if not data:
+        return None
     t_langinfo = {}
     for item in data: 
         t_langinfo[item['languageName']] = item['problemsSolved']
@@ -95,7 +98,7 @@ def stat_user_info():
     td = str(td)
     yd = str(yd)
     # 从数据库加载昨天的统计信息, 账户映射信息, 奖牌信息
-    yd_infos = sql_service.load_user_daily_info(yd)
+    yd_infos = sql_service.load_all_user_daily_info_by_day(yd)
     lc_to_git, medal_history, user_award, user_email = sql_service.load_account_info()
     user_list = []
     for u in medal_history:
@@ -167,7 +170,13 @@ def stat_user_info():
     logger.info(result)
 
     # 将今日统计信息写入数据库
-    sql_service.add_user_daily_info(td, result)
+    for item in result:
+        user = item[0]
+        info = sql_service.serach_single_user_daily_info(user, td)
+        if not info:
+            sql_service.add_single_user_daily_info(td, item)
+        else:
+            sql_service.update_single_user_daily_info(td, item)
     logger.info("add into mysql finished")
     # 发送邮件
     emailobj = email_service.EmailService(user_email)
@@ -182,4 +191,3 @@ def stat_user_info():
 
 if __name__ == '__main__':
     stat_user_info()
-    # send_email("smilecode-2", 2, 1)
