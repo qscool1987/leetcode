@@ -9,6 +9,7 @@
             margin: 0;
             padding: 0;
         }
+        a {text-decoration:none}
 
         #nav {
             /* 设置图片和文字水平居中显示 */
@@ -95,10 +96,43 @@
     <script src="./lib/jquery-1.12.4.js"></script>
     <script>
         $(document).ready(function () {
+            $.submit_user_account_info = function(lc_account, git_account, email_account) {
+                if (lc_account == '') {
+                    // var str = <font color="red"> + "leetcode 账户不能为空!!!" + </font>;
+                    // $("#notice").html(str);
+                    alert("leetcode 账户不能为空!!!");
+                    return;
+                }
+                body = {
+                    lc_account: lc_account,
+                    git_account: git_account,
+                    email_account: email_account,
+                };
+                console.log(body);
+                $.ajax({
+                    type: "get",        // 请求方式
+                    url: "http://120.46.150.151/submit_account_info", // 请求路径
+                    // contentType: "application/json",
+                    data: body,
+                    dataType: "json",   // 预期返回一个 json 类型数据
+                    success: function (data) {   // data是形参名，代表返回的数据
+                        console.log(data);
+                        if (data[0] == 0) {
+                            alert("添加成功!!!");
+                        } else {
+                            alert(data[1]);
+                        }
+                    }
+                });
+            }
+            $("#info_submit").click(function () {
+                var lc_account = $("#lc_account").val();
+                var git_account = $("#git_account").val();
+                var email_account = $("#email_account").val();
+                $.submit_user_account_info(lc_account, git_account, email_account);
+            });
             // console.log('fuck!!!!');
             $.create_git_table = function (data) {
-                // var data = JSON.parse(data);
-                // console.log(data);
                 var html_str = "";
                 for (var i = 0; i < data.length; ++i) {
                     console.log(data[i]);
@@ -135,7 +169,19 @@
 
 <body>
     <div id="nav">
-        <h1>每日信息汇总</h1>
+        <a href="https://github.com/qscool1987/leetcode" target="_blank"><h1>github地址</h1></a>
+        <font color="red">如果你想加入信息汇总或者贡献代码请提供如下信息</font>
+        <p></p>
+        leetcode账号
+        <input id="lc_account" type="text" name="account1" size="20" maxlength="100" value="" />
+        github账号
+        <input id="git_account" type="text" name="account2" size="20" maxlength="100" value="" />
+        email账号
+        <input id="email_account" type="text" name="account3" size="20" maxlength="100" value="" />
+        <button id="info_submit">提交</button>
+        <p></p>
+        <h1>每小时整点更新刷题信息</h1>
+        <!-- <h1>每日信息汇总</h1> -->
         <!-- <div class="div">
             <button id="bt" style="border-color: transparent; color: blueviolet;">查询用户数据</button>
         </div> -->
