@@ -1,1 +1,12 @@
 # 此目录收集一些cpp相关的八股资料
+c++interview_resource.pdf (面试p7及以下足够)
+
+# 一些面试难点
+线程池 thread_pool.h
+lru算法 lru.cpp
+跳表 skip_list.cpp
+
+# 一些面试算法题
+
+
+
