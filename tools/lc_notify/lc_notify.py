@@ -115,26 +115,26 @@ def stat_user_info():
         result.append(t_l)
     logger.info(result)
 
-    # # 将今日统计信息写入数据库
-    # for item in result:
-    #     user = item[0]
-    #     info = sql_service.serach_single_user_daily_info(user, td)
-    #     if not info:
-    #         sql_service.add_single_user_daily_info(td, item)
-    #     else:
-    #         sql_service.update_single_user_daily_info(td, item)
-    # logger.info("add into mysql finished")
-    # # 发送邮件
-    # emailobj = email_service.EmailService(user_email)
-    # for u in user_award_info:
-    #     if user_award[u] == 0 and user_award_info[u][1] > 0:
-    #         emailobj.send_email(u, user_award_info[u][1], True)
-    #         sql_service.update_user_award(u, 1)
-    #         logger.info("send email to {} for award congratuation".format(u))
-    #     elif user_award_info[u][1] > 0 and (medal_history[u] & user_award_info[u][1]) == 0:
-    #         emailobj.send_email(u, user_award_info[u][1], False)
-    #         logger.info("send email to {} for stage congratuation".format(u))
-    #     sql_service.update_user_medal(u, user_award_info[u][0])
+    # 将今日统计信息写入数据库
+    for item in result:
+        user = item[0]
+        info = sql_service.serach_single_user_daily_info(user, td)
+        if not info:
+            sql_service.add_single_user_daily_info(td, item)
+        else:
+            sql_service.update_single_user_daily_info(td, item)
+    logger.info("add into mysql finished")
+    # 发送邮件
+    emailobj = email_service.EmailService(user_email)
+    for u in user_award_info:
+        if user_award[u] == 0 and user_award_info[u][1] > 0:
+            emailobj.send_email(u, user_award_info[u][1], True)
+            sql_service.update_user_award(u, 1)
+            logger.info("send email to {} for award congratuation".format(u))
+        elif user_award_info[u][1] > 0 and (medal_history[u] & user_award_info[u][1]) == 0:
+            emailobj.send_email(u, user_award_info[u][1], False)
+            logger.info("send email to {} for stage congratuation".format(u))
+        sql_service.update_user_medal(u, user_award_info[u][0])
 
 
 if __name__ == '__main__':
