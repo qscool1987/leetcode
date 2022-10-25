@@ -139,7 +139,7 @@
                     html_str += "<tr>";
                     var len = data[i].length;
                     for (var j = 0; j < data[i].length; ++j) {
-                        if (j == len-2) {
+                        if (j == len-3) {
                             if (data[i][j] > 0)
                                 html_str += "<td><font color='red'>" + data[i][j] + "</font></td>";
                             else
@@ -170,7 +170,7 @@
 <body>
     <div id="nav">
         <a href="https://github.com/qscool1987/leetcode" target="_blank"><h1>github地址</h1></a>
-        <font color="red">如果你想加入信息汇总或者贡献代码请提供如下信息</font>
+        <font color="red"><strong>如果你想加入信息汇总或者贡献代码请提供如下信息</strong></font>
         <p></p>
         leetcode账号
         <input id="lc_account" type="text" name="account1" size="20" maxlength="100" value="" />
@@ -180,7 +180,8 @@
         <input id="email_account" type="text" name="account3" size="20" maxlength="100" value="" />
         <button id="info_submit">提交</button>
         <p></p>
-        <h1>每小时整点更新刷题信息</h1>
+        <h1>每小时更新一次刷题信息</h1>
+        <font color="red"><strong>连续打卡天数说明：今天没刷直接归0，今天刷了就会累加起来。积水成渊，加油！！！</strong></font>
         <!-- <h1>每日信息汇总</h1> -->
         <!-- <div class="div">
             <button id="bt" style="border-color: transparent; color: blueviolet;">查询用户数据</button>
@@ -196,6 +197,7 @@
                     <th>竞赛分数</th>
                     <th>连续打卡天数</th>
                     <th>今日刷题数量</th>
+                    <th>懒惰称号</th>
                     <th>日期</th>
                 </tr>
             </thead>
