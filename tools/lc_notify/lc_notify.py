@@ -77,7 +77,7 @@ def get_user_lc_stat_info(user):
     for item in data: 
         t_langinfo[item['languageName']] = item['problemsSolved']
     t_total = 0
-    line = [user, 0, 0, 0, 0, 0, 0]
+    line = [user, 0, 0, 0, 0, 0, 0, 0]
     for lang in settings.languages:
         t_cnt = 0
         if lang in t_langinfo:
@@ -165,6 +165,8 @@ def stat_user_info():
                 # 如果今天晚上23点后统计还是没有刷题，则懒懒等级+1
                 if hour >= 23:
                     t_l[7] = int(y_l[7]) + 1
+                else:
+                    t_l[7] = int(y_l[7])
         if t_l[2] >= 1000 and (user_award_info[u][0] & settings.MedalType.CodeSubmit) == 0:
             user_award_info[u][0] += settings.MedalType.CodeSubmit
             user_award_info[u][1] = settings.MedalType.CodeSubmit
@@ -192,10 +194,10 @@ def stat_user_info():
         if user_award[u] == 0 and user_award_info[u][1] > 0:
             emailobj.send_email(u, user_award_info[u][1], True)
             sql_service.update_user_award(u, 1)
-            logger.info("send email to {} for award congratuation".fromt(u))
+            logger.info("send email to {} for award congratuation".format(u))
         elif user_award_info[u][1] > 0 and (medal_history[u] & user_award_info[u][1]) == 0:
             emailobj.send_email(u, user_award_info[u][1], False)
-            logger.info("send email to {} for stage congratuation".fromt(u))
+            logger.info("send email to {} for stage congratuation".format(u))
         sql_service.update_user_medal(u, user_award_info[u][0])
 
 
