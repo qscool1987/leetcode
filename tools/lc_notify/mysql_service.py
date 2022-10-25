@@ -12,7 +12,7 @@ class MysqlService(object):
     USER_LC_DAILY_INFO_TABLE = 'user_lc_daily_info'
     USER_LC_DAILY_INFO_FIELDS = ['user', 'total_solve', 'code_submit', 
             'problem_submit', 'rating_score', 'continue_days',
-            'new_solve', 'date_time']
+            'new_solve', 'lazy_days', 'date_time']
     ACCOUNT_INFO_FIELDS = ['user', 'git_account', 'medal', 'award', 'email']
 
     def __init__(self):
@@ -41,36 +41,6 @@ class MysqlService(object):
             self.cur = None
             return False
     
-    def add_user_daily_info(self, date, datalist):
-        if not self._connect_mysql():
-            return False
-        presql = "insert into " + self.USER_LC_DAILY_INFO_TABLE
-        presql += " (" + ",".join(self.USER_LC_DAILY_INFO_FIELDS) + ")"   
-        for data in datalist:
-            user = data[0]
-            total = int(data[1])
-            code_submit = int(data[2])
-            problem_submit = int(data[3])
-            score = int(data[4])
-            days = int(data[5])
-            new_solve = int(data[6])
-            sql = presql + "values ('%s',%s, %s, %s, %s, %s, %s, '%s')" % \
-                (user, total, code_submit, problem_submit, score, \
-                    days, new_solve, date)
-            logger.info(sql)
-            try:
-                self.cur.execute(sql)
-                self.conn.commit()
-            except Exception as e:
-                logger.error(e)
-                self.conn.rollback()
-                self.cur.close()
-                self.conn.close()
-                return False
-        self.cur.close()
-        self.conn.close()
-        return True
-    
     def add_single_user_daily_info(self, date, data):
         if not self._connect_mysql():
             return False
@@ -83,9 +53,10 @@ class MysqlService(object):
         score = int(data[4])
         days = int(data[5])
         new_solve = int(data[6])
-        sql = presql + "values ('%s',%s, %s, %s, %s, %s, %s, '%s')" % \
+        lazy_days = int(data[7])
+        sql = presql + "values ('%s',%s, %s, %s, %s, %s, %s, %s, '%s')" % \
             (user, total, code_submit, problem_submit, score, \
-                days, new_solve, date)
+                days, new_solve, lazy_days, date)
         logger.info(sql)
         try:
             self.cur.execute(sql)
@@ -101,13 +72,12 @@ class MysqlService(object):
         return True
     
     def update_single_user_daily_info(self, date, data):
-        user = data[0]
         if not self._connect_mysql():
             return False
         sql = "update " + self.USER_LC_DAILY_INFO_TABLE + " set \
             total_solve=%s, code_submit=%s, problem_submit=%s, rating_score=%s, \
-            continue_days=%s, new_solve=%s where user = '%s' and  date_time ='%s'" % (data[1],\
-            data[2], data[3], data[4], data[5], data[6], data[0], date)
+            continue_days=%s, new_solve=%s, lazy_days=%s where user = '%s' and  date_time ='%s'" % (data[1],\
+            data[2], data[3], data[4], data[5], data[6], data[7], data[0], date)
         try:
             self.cur.execute(sql)
             self.conn.commit()
@@ -293,15 +263,11 @@ class MysqlService(object):
 
 if __name__ == '__main__':
     obj = MysqlService()
-    date = '2022-09-17'
-    # obj.update_user_award('smilecode-2', 1)
-    # res = obj.load_account_info()
-    # print(res)
-    # print(obj.search_account('smilecode-2'))
-    # obj.add_account_info('smilecode-22', 'xx', 'xx')
-    # res = obj.serach_single_user_daily_info('smilecode-2', date)
-    # print(res)
-    # data = ['smilecode-2', 687, 1491, 12, 1731, 0, 0]
-    # obj.add_single_user_daily_info(date, data)
-    # res = obj.serach_single_user_daily_info('smilecode-2', date)
-    # print(res)
+    date = '2022-10-25'
+    user = 'smilecode-2'
+    res = obj.serach_single_user_daily_info(user, date)
+    print(res)
+    data = ['smilecode-2', 687, 1491, 12, 1731, 0, 0, 10]
+    obj.update_single_user_daily_info(date, data)
+    res = obj.serach_single_user_daily_info(user, date)
+    print(res)

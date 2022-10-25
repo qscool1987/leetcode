@@ -132,6 +132,7 @@ def stat_user_info():
                 user_award_info[u] = [history, td_medals[u]]  
     # 对比
     result = []
+    hour = datetime.datetime.now().hour
     for u in user_list:
         y_l = []
         if u in yd_infos:
@@ -148,15 +149,22 @@ def stat_user_info():
         if u in user_score:
             t_l[4] = user_score[u]
         if len(y_l) == 0:
-            t_l[6] = t_l[1]
-            t_l[5] = 1
+            t_l[6] = t_l[1] # 今日刷题量 新加的用户为总刷题量
+            t_l[5] = 1 # 连续打卡天数 新加的用户为1
+            t_l[7] = 0 # 懒惰等级 新加的用户初始化为0
         else:
             diff_t = int(t_l[1]) - int(y_l[1])
             t_l[6] = diff_t
             if diff_t > 0:
                 t_l[5] += int(y_l[5]) + 1
+                t_l[7] = int(y_l[7]) - 2 # 只要今日刷过题，则懒惰等级-2
+                if t_l[7] < 0: # 最低不低于0
+                    t_l[7] = 0
             else:
                 t_l[5] = 0
+                # 如果今天晚上23点后统计还是没有刷题，则懒懒等级+1
+                if hour >= 23:
+                    t_l[7] = int(y_l[7]) + 1
         if t_l[2] >= 1000 and (user_award_info[u][0] & settings.MedalType.CodeSubmit) == 0:
             user_award_info[u][0] += settings.MedalType.CodeSubmit
             user_award_info[u][1] = settings.MedalType.CodeSubmit
@@ -184,8 +192,10 @@ def stat_user_info():
         if user_award[u] == 0 and user_award_info[u][1] > 0:
             emailobj.send_email(u, user_award_info[u][1], True)
             sql_service.update_user_award(u, 1)
+            logger.info("send email to {} for award congratuation".fromt(u))
         elif user_award_info[u][1] > 0 and (medal_history[u] & user_award_info[u][1]) == 0:
             emailobj.send_email(u, user_award_info[u][1], False)
+            logger.info("send email to {} for stage congratuation".fromt(u))
         sql_service.update_user_medal(u, user_award_info[u][0])
 
 

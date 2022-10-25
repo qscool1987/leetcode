@@ -1,11 +1,11 @@
 from flask import Flask
 from flask import request
-import lc_git_stat
 import datetime
 import json
 import mysql_service
 from lc_notify import get_user_lc_stat_info
 from loghandle import logger
+import settings
 
 sql_service = mysql_service.MysqlService()
 
@@ -22,10 +22,18 @@ def get_user_info():
    info = []
    for u in data:
       line = []
-      for item in data[u]:
+      
+      tmplist = list(data[u])
+      lazydays = tmplist[7]
+      if lazydays >= len(settings.lazyLevels):
+         tmplist[7] = settings.lazyLevels[-1]
+      else:
+         tmplist[7] = settings.lazyLevels[lazydays]
+      for item in tmplist:
          line.append(str(item))
       info.append(line)
-   info = sorted(info, key=lambda item: item[6], reverse=True)
+   # 按今日刷题量进行排序
+   info = sorted(info, key=lambda item: int(item[6]), reverse=True)
    # logger.info(info)
    return json.dumps(info)
 
