@@ -8,10 +8,12 @@ def is_vaild_digit(num_str):
             return False
     return True
 
-def stat_git_info(td, git_user):
-    td = str(td)
+def git_pull():
     cmd = "cd /root/work/leetcode && git pull origin master"
     os.system(cmd)
+
+def stat_git_info(td, git_user):
+    td = str(td)
     cmd = "cd /root/work/leetcode && git log --since='2022-09-25' --before='"
     cmd += td + "' --author='" 
     cmd += git_user +"' --pretty=tformat: --numstat"

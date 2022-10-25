@@ -4,92 +4,28 @@ import json
 import requests
 import datetime
 import settings
-from lc_git_stat import stat_git_info
+from lc_git_stat import (stat_git_info, git_pull)
 from loghandle import logger
 import mysql_service
 import email_service
+import lc_service
 import sys
 
 user_list2 = ['smilecode-2'] #用于调试
 
 # 数据库服务对象
-sql_service = mysql_service.MysqlService()  
+sql_service = mysql_service.MysqlService()
 
-def get_user_medal_info(user):
-    """获取用户当前的奖牌信息"""
-    url = 'https://leetcode.cn/graphql/noj-go/'
-    headers = {
-        "content-type": "application/json",
-    }
-    data = {
-        "query":"\n    query contestBadge($userSlug: String!) {\n  userProfileUserLevelMedal(userSlug: $userSlug) {\n    current {\n      name\n      obtainDate\n      category\n      config {\n        icon\n        iconGif\n        iconGifBackground\n      }\n      id\n      year\n      month\n      hoverText\n    }\n    next {\n      name\n      obtainDate\n      category\n      config {\n        icon\n        iconGif\n        iconGifBackground\n      }\n      id\n      year\n      month\n      hoverText\n      everOwned\n    }\n  }\n}\n    ",
-         "variables":{"userSlug":user}
-    }
-    res = requests.post(url, data=json.dumps(data), headers=headers).json()['data']['userProfileUserLevelMedal']['current']
-    if res:
-        if res['name'] == 'Knight':
-            return 1
-        elif res['name'] == 'Guardian':
-            return 2
-    return 0
-
-def get_user_score_info(user):
-    """获取用户当前的分数信息"""
-    url = 'https://leetcode.cn/graphql/noj-go/'
-    headers = {
-        "content-type": "application/json",
-    }
-    data = {
-        "query": "query userContestRankingInfo($userSlug: String!) {\n  userContestRanking(userSlug: $userSlug) {\n    attendedContestsCount\n    rating\n    globalRanking\n    localRanking\n    globalTotalParticipants\n    localTotalParticipants\n    topPercentage\n  }\n  userContestRankingHistory(userSlug: $userSlug) {\n    attended\n    totalProblems\n    trendingDirection\n    finishTimeInSeconds\n    rating\n    score\n    ranking\n    contest {\n      title\n      titleCn\n      startTime\n    }\n  }\n}\n    ",
-        "variables": {
-            "userSlug": user
-        }
-    }
-    res = requests.post(url, data=json.dumps(data), headers=headers)
-    data = res.json().get('data')
-    if not data:
-        return 0
-    data = data.get('userContestRanking')
-    if not data:
-        return 0
-    score = data.get('rating')
-    if not score:
-        return 0
-    return int(score)
-
-def get_user_lc_stat_info(user):
-    """获取用户当前的刷题信息"""
-    url = 'https://leetcode.cn/graphql/noj-go/'
-    headers = {
-        "content-type": "application/json",
-    }
-    data = {
-        "query": "\n    query languageStats($userSlug: String!) {\n  userLanguageProblemCount(userSlug: $userSlug) {\n    languageName\n    problemsSolved\n  }\n}\n    ",
-        "variables" : {
-            "userSlug": user
-        }
-    }
-    res = requests.post(url, data=json.dumps(data), headers=headers)
-    data = res.json()['data']['userLanguageProblemCount']
-    if not data:
-        return None
-    t_langinfo = {}
-    for item in data: 
-        t_langinfo[item['languageName']] = item['problemsSolved']
-    t_total = 0
-    line = [user, 0, 0, 0, 0, 0, 0, 0]
-    for lang in settings.languages:
-        t_cnt = 0
-        if lang in t_langinfo:
-            t_cnt = t_langinfo[lang]
-        t_total += t_cnt
-    line[1] = str(t_total)
-    return line
+# 访问leetcode官方接口的对象
+leetcode_service = lc_service.LeetcodeService()
 
 def stat_user_info():
     """
-    统计所有用户的刷题信息并进行汇总，生成excel表，并对提供邮箱的用户发送邮件，excel作为邮件附件发送
+    统计所有用户的刷题信息并进行汇总，和昨日信息进行对比，将结果记录到mysql
+    如果有用户触发奖励条件，则给用户发送邮件通知
     """
+    # 更新本地git代码库，后面统计代码贡献
+    git_pull()
     td = datetime.date.today()
     yd = td + datetime.timedelta(days = -1)
     td_infos = {}
@@ -106,13 +42,13 @@ def stat_user_info():
     td_medals = {}
     for u in user_list:
         # 获取刷题信息
-        res = get_user_lc_stat_info(u)
+        res = leetcode_service.get_user_lc_stat_info(u)
         td_infos[u] = res
         # 获取竞赛分数信息
-        score = get_user_score_info(u)
+        score = leetcode_service.get_user_score_info(u)
         user_score[u] = score
         # 获取奖牌信息
-        cur_medal = get_user_medal_info(u)
+        cur_medal = leetcode_service.get_user_medal_info(u)
         td_medals[u] = cur_medal
         # 获取git代码贡献信息
         if u in lc_to_git:
@@ -179,26 +115,26 @@ def stat_user_info():
         result.append(t_l)
     logger.info(result)
 
-    # 将今日统计信息写入数据库
-    for item in result:
-        user = item[0]
-        info = sql_service.serach_single_user_daily_info(user, td)
-        if not info:
-            sql_service.add_single_user_daily_info(td, item)
-        else:
-            sql_service.update_single_user_daily_info(td, item)
-    logger.info("add into mysql finished")
-    # 发送邮件
-    emailobj = email_service.EmailService(user_email)
-    for u in user_award_info:
-        if user_award[u] == 0 and user_award_info[u][1] > 0:
-            emailobj.send_email(u, user_award_info[u][1], True)
-            sql_service.update_user_award(u, 1)
-            logger.info("send email to {} for award congratuation".format(u))
-        elif user_award_info[u][1] > 0 and (medal_history[u] & user_award_info[u][1]) == 0:
-            emailobj.send_email(u, user_award_info[u][1], False)
-            logger.info("send email to {} for stage congratuation".format(u))
-        sql_service.update_user_medal(u, user_award_info[u][0])
+    # # 将今日统计信息写入数据库
+    # for item in result:
+    #     user = item[0]
+    #     info = sql_service.serach_single_user_daily_info(user, td)
+    #     if not info:
+    #         sql_service.add_single_user_daily_info(td, item)
+    #     else:
+    #         sql_service.update_single_user_daily_info(td, item)
+    # logger.info("add into mysql finished")
+    # # 发送邮件
+    # emailobj = email_service.EmailService(user_email)
+    # for u in user_award_info:
+    #     if user_award[u] == 0 and user_award_info[u][1] > 0:
+    #         emailobj.send_email(u, user_award_info[u][1], True)
+    #         sql_service.update_user_award(u, 1)
+    #         logger.info("send email to {} for award congratuation".format(u))
+    #     elif user_award_info[u][1] > 0 and (medal_history[u] & user_award_info[u][1]) == 0:
+    #         emailobj.send_email(u, user_award_info[u][1], False)
+    #         logger.info("send email to {} for stage congratuation".format(u))
+    #     sql_service.update_user_medal(u, user_award_info[u][0])
 
 
 if __name__ == '__main__':
