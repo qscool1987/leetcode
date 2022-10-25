@@ -3,12 +3,14 @@ from flask import request
 import datetime
 import json
 import mysql_service
-from lc_notify import get_user_lc_stat_info
+import lc_service
 from loghandle import logger
 import settings
 
 sql_service = mysql_service.MysqlService()
 
+# 访问leetcode官方接口的对象
+leetcode_service = lc_service.LeetcodeService()
 
 app = Flask(__name__)
 
@@ -22,7 +24,6 @@ def get_user_info():
    info = []
    for u in data:
       line = []
-      
       tmplist = list(data[u])
       lazydays = tmplist[7]
       if lazydays >= len(settings.lazyLevels):
@@ -50,7 +51,7 @@ def submit_account_info():
       ret[0] = '1'
       ret[1] = "邮箱格式错误!!!!"
       return json.dumps(ret)
-   info = get_user_lc_stat_info(lc_account)
+   info = leetcode_service.get_user_lc_stat_info(lc_account)
    if not info:
       ret[0] = '1'
       ret[1] = "leetcode 账户不存在"
