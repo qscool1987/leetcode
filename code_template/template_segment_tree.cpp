@@ -31,18 +31,19 @@ using namespace std;
  */
 class SegmentTree {
 public:
+    using LL = long long;
     // tree的节点总数
     static const int N = 5e5;
     
-    // 标记节点是否已被使用
+    // 标记节点是否已开
     static const int INF = INT_MAX;
-    
     struct Node {
         Node():l(INF),r(INF),val(0){}
-        int l, r;
+        int l, r; //左右子树的索引号
         long long val;
     };
     Node tree[N];
+    int k = 1; //记录目前动态开了多少个点，下一个点的索引号为k+1
     
     /*
      功能：向线段树中插入单点
@@ -51,23 +52,25 @@ public:
      参数4：待插入的值
      返回值：无
      */
-    void insert(int cur, int l, int r, int val) {
-        auto& nd = tree[cur];
-        // nd.l == INF 动态开点
-        if (nd.l == INF) {
-            nd.l = l;
-            nd.r = r;
-        }
-        nd.val += 1;
+    void insert(int cur, LL l, LL r, LL val) {
+        tree[cur].val += 1;
         if (val == l && val == r) {
             return;
         }
-        int m = l + (r - l) / 2;
+        pushDown(cur);
+        LL m = l + (r - l) / 2;
         if (val <= m) {
-            insert(cur << 1, l, m, val);
+            insert(tree[cur].l, l, m, val);
         } else {
-            insert(cur << 1 | 1, m + 1, r, val);
+            insert(tree[cur].r, m + 1, r, val);
         }
+    }
+    
+    void pushDown(int cur) {
+        if (tree[cur].l == INF)
+            tree[cur].l = ++k;
+        if (tree[cur].r == INF)
+            tree[cur].r = ++k;
     }
     
     /*
@@ -77,18 +80,17 @@ public:
      参数4，5：[i, j]待查询的范围
      返回值：long long
      */
-    long long search(int cur, int l, int r, int i, int j) {
-        auto& nd = tree[cur];
-        if (nd.l == INF) return 0;
-        if (i <= l && j >= r) return nd.val;
-        int m = l + (r - l) / 2;
+    long long search(int cur, LL l, LL r, LL i, LL j) {
+        if (i <= l && j >= r) return tree[cur].val;
+        if (tree[cur].l == INF) return 0;
+        LL m = l + (r - l) / 2;
         if (j <= m) {
-            return search(cur << 1, l, m, i, j);
+            return search(tree[cur].l, l, m, i, j);
         } else if (i > m) {
-            return search(cur << 1 | 1, m + 1, r, i, j);
+            return search(tree[cur].r, m + 1, r, i, j);
         } else {
-            return search(cur << 1, l, m, i, m) +
-                search(cur << 1 | 1, m + 1, r, m + 1, j);
+            return search(tree[cur].l, l, m, i, m) +
+                search(tree[cur].r, m + 1, r, m + 1, j);
         }
     }
 };
