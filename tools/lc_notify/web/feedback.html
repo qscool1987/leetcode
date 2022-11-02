@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" type="text/css" href="./index.css">
+    <meta charset="utf-8">
+    <title>leetcodehappy</title>
+    <script src="./lib/jquery-1.12.4.js"></script>
+    <script>
+        $(document).ready(function () {
+            $("#fm_feed").click(function () {
+                var content = $("#text_fd").val();
+                if (content == '') {
+                    // var str = <font color="red"> + "leetcode 账户不能为空!!!" + </font>;
+                    // $("#notice").html(str);
+                    alert("您还没有输入反馈信息!!!");
+                    return;
+                }
+                body = {
+                    msg: content
+                };
+                $.ajax({
+                    type: "get",        // 请求方式
+                    url: "http://120.46.150.151/submit_feedback_info", // 请求路径
+                    // contentType: "application/json",
+                    data: body,
+                    dataType: "json",   // 预期返回一个 json 类型数据
+                    success: function (data) {   // data是形参名，代表返回的数据
+                        console.log(data);
+                        if (data[0] == 0) {
+                            alert("反馈成功!!!");
+                        } else {
+                            alert(data[1]);
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <div id="nav">
+        <h1>意见反馈</h1>
+        <font color="red"><strong>让我们一起将氛围造起来！！</strong></font>
+        <p></p>
+        <textarea id="text_fd" type="text" name="sign" v-model="text" class="sign" placeholder="请在这里输入！！"></textarea>
+        <p></p>
+        <button id="fm_feed" class="button">提交</button>
+</body>
+</div>
+</body>
+
+</html>

@@ -23,3 +23,10 @@ create table account_info (
 	unique (user),
 	unique (git_account)
 ) engine=innoDB default charset=utf8;
+
+create table feedback_info (
+	id int auto_increment,
+	content varchar(2048) not null default '',
+	date_time datetime not null,
+	primary key(id)
+) engine=innoDB default charset=utf8;
