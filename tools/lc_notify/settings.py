@@ -1,7 +1,7 @@
 #coding=utf-8
 import os
 
-languages = ['C++', 'Java', 'Python3', 'MySQL', 'Ruby', 'Bash', 'Go']
+languages = ['C', 'C++', 'Java', 'Python3', 'MySQL', 'Ruby', 'Bash', 'Go']
 
 emails = {
     'caicodehh': '1748493969@qq.com',

@@ -1,4 +1,4 @@
-#coding=utf-8
+# coding=utf-8
 #!/usr/bin/env python
 import json
 import requests
@@ -16,14 +16,14 @@ class LeetcodeService(object):
             "content-type": "application/json",
         }
 
-
     def get_user_medal_info(self, user):
         """获取用户当前的奖牌信息"""
         data = {
-            "query":"\n    query contestBadge($userSlug: String!) {\n  userProfileUserLevelMedal(userSlug: $userSlug) {\n    current {\n      name\n      obtainDate\n      category\n      config {\n        icon\n        iconGif\n        iconGifBackground\n      }\n      id\n      year\n      month\n      hoverText\n    }\n    next {\n      name\n      obtainDate\n      category\n      config {\n        icon\n        iconGif\n        iconGifBackground\n      }\n      id\n      year\n      month\n      hoverText\n      everOwned\n    }\n  }\n}\n    ",
-            "variables":{"userSlug":user}
+            "query": "\n    query contestBadge($userSlug: String!) {\n  userProfileUserLevelMedal(userSlug: $userSlug) {\n    current {\n      name\n      obtainDate\n      category\n      config {\n        icon\n        iconGif\n        iconGifBackground\n      }\n      id\n      year\n      month\n      hoverText\n    }\n    next {\n      name\n      obtainDate\n      category\n      config {\n        icon\n        iconGif\n        iconGifBackground\n      }\n      id\n      year\n      month\n      hoverText\n      everOwned\n    }\n  }\n}\n    ",
+            "variables": {"userSlug": user}
         }
-        res = requests.post(self.url, data=json.dumps(data), headers=self.headers).json()['data']['userProfileUserLevelMedal']['current']
+        res = requests.post(self.url, data=json.dumps(data), headers=self.headers).json()[
+            'data']['userProfileUserLevelMedal']['current']
         if res:
             if res['name'] == 'Knight':
                 return 1
@@ -39,7 +39,8 @@ class LeetcodeService(object):
                 "userSlug": user
             }
         }
-        res = requests.post(self.url, data=json.dumps(data), headers=self.headers)
+        res = requests.post(self.url, data=json.dumps(
+            data), headers=self.headers)
         data = res.json().get('data')
         if not data:
             return 0
@@ -55,19 +56,21 @@ class LeetcodeService(object):
         """获取用户当前的刷题信息"""
         data = {
             "query": "\n    query languageStats($userSlug: String!) {\n  userLanguageProblemCount(userSlug: $userSlug) {\n    languageName\n    problemsSolved\n  }\n}\n    ",
-            "variables" : {
+            "variables": {
                 "userSlug": user
             }
         }
-        res = requests.post(self.url, data=json.dumps(data), headers=self.headers)
+        res = requests.post(self.url, data=json.dumps(
+            data), headers=self.headers)
         data = res.json()['data']['userLanguageProblemCount']
         if not data:
             return None
         t_langinfo = {}
-        for item in data: 
+        for item in data:
             t_langinfo[item['languageName']] = item['problemsSolved']
         t_total = 0
-        line = [0] * (len(mysql_service.MysqlService.USER_LC_DAILY_INFO_FIELDS) - 1)
+        line = [0] * \
+            (len(mysql_service.MysqlService.USER_LC_DAILY_INFO_FIELDS) - 1)
         line[0] = user
         for lang in settings.languages:
             t_cnt = 0
@@ -79,11 +82,7 @@ class LeetcodeService(object):
 
 
 if __name__ == '__main__':
-    user = 'smilecode-2'
     obj = LeetcodeService()
-    res = obj.get_user_lc_stat_info(user)
-    print(res)
-    res = obj.get_user_medal_info(user)
-    print(res)
-    res = obj.get_user_score_info(user)
-    print(res)
+    user = 'daydayup'
+    # res = obj.get_user_medal_info(user)
+    # print(res)
