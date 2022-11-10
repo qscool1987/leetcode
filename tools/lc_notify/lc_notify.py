@@ -10,6 +10,7 @@ import mysql_service
 import email_service
 import lc_service
 import award
+import lc_target
 import sys
 
 user_list2 = ['smilecode-2']  # 用于调试
@@ -44,6 +45,8 @@ def stat_user_info():
     for u in user_list:
         # 获取刷题信息
         res = leetcode_service.get_user_lc_stat_info(u)
+        if not res:
+            continue
         td_infos[u] = res
         # 获取竞赛分数信息
         score = leetcode_service.get_user_score_info(u)
@@ -85,12 +88,13 @@ def stat_user_info():
             else:
                 # 如果今天晚上23点后统计还是没有刷题，则懒懒等级+1
                 if hour >= 23:
-                    t_l[5] = 0
+                    t_l[5] = int(y_l[5])
                     t_l[7] = int(y_l[7]) + 1
                 else:
                     t_l[5] = int(y_l[5])
                     t_l[7] = int(y_l[7])
         result.append(t_l)
+    print(result)
     logger.info(result)
 
     award_service = award.LcAward(medal_history,
@@ -108,6 +112,9 @@ def stat_user_info():
             sql_service.update_single_user_daily_info(td, item)
         award_service.deal_award(item)
     logger.info("add into mysql finished")
+    if hour >= 23:  # 每日23点后处理目标状态
+        target_service = lc_target.TargetService()
+        target_service.deal_all_targets_status()
 
 
 if __name__ == '__main__':

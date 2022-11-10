@@ -7,6 +7,7 @@ import settings
 from loghandle import logger
 import mysql_service
 import lc_service
+import random
 
 
 class MedalType:
@@ -73,19 +74,32 @@ class LcAward(object):
         td_award = self.medal_history[user] ^ td_medal
         td_award = td_award & (-td_award)  # 取最低bit位的奖励进行发放
         to_addr = self.user_email[user]
-
         if self.user_award[user] == 0:
-            bodystr = self.Congratulations[td_award] + self.award_str
-            self.emailobj.send_email(to_addr, bodystr)
-            self.sql_service.update_user_award(user, 1)
-            logger.info(
-                "send email to {} for award congratuation".format(user))
+            if self._rand_hit_award():  # 概率中奖
+                bodystr = self.Congratulations[td_award] + self.award_str
+                self.emailobj.send_email(to_addr, bodystr)
+                self.sql_service.update_user_award(user, 1)
+                logger.info(
+                    "send email to {} for award congratuation".format(user))
+            else:
+                bodystr = self.Congratulations[td_award]
+                self.emailobj.send_email(to_addr, bodystr)
+                logger.info(
+                    "send email to {} for stage congratuation".format(user))
         elif self.user_award[user] == 1:
             bodystr = self.Congratulations[td_award]
             self.emailobj.send_email(to_addr, bodystr)
             logger.info(
                 "send email to {} for stage congratuation".format(user))
         sql_service.update_user_medal(user, td_medal)
+
+    def _rand_hit_award(self):
+        k1 = random.randint(1, 100)
+        k2 = random.randint(1, 100)
+        mul = k1 * k2
+        if mul >= 10 and mul % 10 == 0:
+            return True
+        return False
 
 
 if __name__ == '__main__':
@@ -104,4 +118,6 @@ if __name__ == '__main__':
                   sql_service,
                   leetcode_service)
     info = ['smilecode-2', 724, 14406, 15, 1815, 100, 4, 1]
-    obj.deal_award(info)
+    # obj.deal_award(info)
+
+    print(obj._rand_hit_award())
