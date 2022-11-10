@@ -30,3 +30,15 @@ create table feedback_info (
 	date_time datetime not null,
 	primary key(id)
 ) engine=innoDB default charset=utf8;
+
+create table user_target_info (
+	id int auto_increment,
+	user varchar(128) not null default '',
+	target_type int not null default 0,
+	target_value int not null default 0,
+	opponent varchar(128) not null default '',
+	status int not null default 0,
+	create_date datetime not null,
+	dead_line datetime not null,
+	primary key(id)
+) engine=innoDB default charset=utf8;

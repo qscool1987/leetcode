@@ -6,6 +6,7 @@ import settings
 from loghandle import logger
 import mysql_service
 import sys
+import mysql_service
 
 
 class LeetcodeService(object):
@@ -53,36 +54,34 @@ class LeetcodeService(object):
         return int(score)
 
     def get_user_lc_stat_info(self, user):
-        """获取用户当前的刷题信息"""
+        url = 'https://leetcode.cn/graphql/'
         data = {
-            "query": "\n    query languageStats($userSlug: String!) {\n  userLanguageProblemCount(userSlug: $userSlug) {\n    languageName\n    problemsSolved\n  }\n}\n    ",
+            "query": "\n    query userQuestionProgress($userSlug: String!) {\n  userProfileUserQuestionProgress(userSlug: $userSlug) {\n    numAcceptedQuestions {\n      difficulty\n      count\n    }\n    numFailedQuestions {\n      difficulty\n      count\n    }\n    numUntouchedQuestions {\n      difficulty\n      count\n    }\n  }\n}\n    ",
             "variables": {
                 "userSlug": user
             }
         }
-        res = requests.post(self.url, data=json.dumps(
+        res = requests.post(url, data=json.dumps(
             data), headers=self.headers)
-        data = res.json()['data']['userLanguageProblemCount']
-        if not data:
+        data = res.json()[
+            'data']['userProfileUserQuestionProgress']['numAcceptedQuestions']
+        logger.info(data)
+        if len(data) == 0:
             return None
-        t_langinfo = {}
-        for item in data:
-            t_langinfo[item['languageName']] = item['problemsSolved']
-        t_total = 0
         line = [0] * \
             (len(mysql_service.MysqlService.USER_LC_DAILY_INFO_FIELDS) - 1)
         line[0] = user
-        for lang in settings.languages:
-            t_cnt = 0
-            if lang in t_langinfo:
-                t_cnt = t_langinfo[lang]
-            t_total += t_cnt
-        line[1] = str(t_total)
+        problems = 0
+        for item in data:
+            problems += item['count']
+        line[1] = str(problems)
         return line
 
 
 if __name__ == '__main__':
     obj = LeetcodeService()
+
     user = 'daydayup'
-    # res = obj.get_user_medal_info(user)
-    # print(res)
+    date_time = '2022-11-07'
+    res = obj.get_user_lc_stat_info(user)
+    print(res)

@@ -13,12 +13,15 @@ class MysqlService(object):
     ACCOUNT_INFO_TABLE = 'account_info'
     USER_LC_DAILY_INFO_TABLE = 'user_lc_daily_info'
     FEEDBACK_INFO_TABLE = 'feedback_info'
+    USER_ATGERT_INFO_TABLE = 'user_target_info'
     USER_LC_DAILY_INFO_FIELDS = ['user', 'total_solve', 'code_submit',
                                  'problem_submit', 'rating_score', 'continue_days',
                                  'new_solve', 'lazy_days', 'date_time']
     ACCOUNT_INFO_FIELDS = ['user', 'git_account',
                            'medal', 'award', 'email', 'date_time']
     FEEDBACK_INFO_FIELDS = ['content', 'date_time']
+    USER_ATGERT_INFO_FIELDS = ['user', 'target_type', 'target_value', 'opponent',
+                            'status', 'create_date', 'dead_line']
 
     def __init__(self):
         self.port = 3306
@@ -287,19 +290,109 @@ class MysqlService(object):
             self.conn.close()
             return False
 
+    def update_user_problem_number(self, user, num, date_time):
+        if not self._connect_mysql():
+            return False
+        sql = "update user_lc_daily_info set total_solve=%s where user='%s' \
+               and date_time='%s'" % (num, user,date_time)
+        try:
+            self.cur.execute(sql)
+            self.conn.commit()
+            self.cur.close()
+            self.conn.close()
+            return True
+        except Exception as e:
+            self.conn.rollback()
+            self.cur.close()
+            self.conn.close()
+            return False
+
+    def add_user_target(self, info):
+        if not self._connect_mysql():
+            return False
+        sql = "insert into " + self.USER_ATGERT_INFO_TABLE + " (" + \
+            ",".join(self.USER_ATGERT_INFO_FIELDS) + ") values('%s', %s, %s, '%s', %s, '%s', '%s')" \
+            % (info[0], info[1], info[2], info[3], info[4], info[5], info[6])
+        try:
+            self.cur.execute(sql)
+            self.conn.commit()
+            self.cur.close()
+            self.conn.close()
+            return True
+        except Exception as e:
+            print(e)
+            self.conn.rollback()
+            self.cur.close()
+            self.conn.close()
+            return False
+    
+    def load_all_unfinished_target_info(self):
+        if not self._connect_mysql():
+            return False
+        sql = "select * " + \
+            " from " + self.USER_ATGERT_INFO_TABLE + " where status = 1"
+        try:
+            self.cur.execute(sql)
+            data = self.cur.fetchall()
+            self.cur.close()
+            self.conn.close()
+            return data
+        except Exception as e:
+            logger.error(e)
+            self.cur.close()
+            self.conn.close()
+            return None
+
+    def load_single_user_unfinished_target_info(self, user):
+        if not self._connect_mysql():
+            return False
+        sql = "select * " + \
+            " from " + self.USER_ATGERT_INFO_TABLE + " where status = 1 and user = '%s'" % user
+        try:
+            self.cur.execute(sql)
+            data = self.cur.fetchall()
+            self.cur.close()
+            self.conn.close()
+            return data
+        except Exception as e:
+            logger.error(e)
+            self.cur.close()
+            self.conn.close()
+            return None
+
+    def update_user_target_status(self, id, status):
+        if not self._connect_mysql():
+            return False
+        sql = "update " + self.USER_ATGERT_INFO_TABLE + " set status = %d where id = %d" % (status, id)
+        print(sql)
+        try:
+            self.cur.execute(sql)
+            self.conn.commit()
+            self.cur.close()
+            self.conn.close()
+            return True
+        except Exception as e:
+            print(e)
+            self.conn.rollback()
+            self.cur.close()
+            self.conn.close()
+            return False
+
 
 if __name__ == '__main__':
     obj = MysqlService()
-    date = '2022-10-25'
+    # info = ['smilecode-2', 2, 500, '', 1, '2022-11-07', '2022-11-30']
+    # obj.add_user_target(info)
+    # info = ['smilecode-2', 3, 1000, '', 1, '2022-11-07', '2022-11-30']
+    # obj.add_user_target(info)
+    # info = ['smilecode-2', 4, 50, '', 1, '2022-11-07', '2022-11-30']
+    # obj.add_user_target(info)
+    # info = ['smilecode-2', 5, 100, '', 1, '2022-11-07', '2022-11-30']
+    # obj.add_user_target(info)
+    # info = ['smilecode-2', 6, 2000, '', 1, '2022-11-07', '2022-11-30']
+    # obj.add_user_target(info)
+    # info = ['smilecode-2', 7, 0, 'ou-hai-zijhu23dnz', 1, '2022-11-07', '2022-11-30']
+    # obj.add_user_target(info)
     user = 'smilecode-2'
-    content = '可不可以添加一些资料'
-    # res = obj.serach_single_user_daily_info(user, date)
-    # print(res)
-    # data = ['smilecode-2', 687, 1491, 12, 1731, 0, 0, 10]
-    # obj.update_single_user_daily_info(date, data)
-    # res = obj.serach_single_user_daily_info(user, date)
-    # print(res)
-    # obj.add_feedback_info(date, content)
-    # obj.add_account_info('smileqinshuai')
-    res = obj.load_account_info()
+    res = obj.load_single_user_unfinished_target_info(user)
     print(res)
