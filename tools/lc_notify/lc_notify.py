@@ -11,6 +11,7 @@ import email_service
 import lc_service
 import award
 import lc_target
+import game_play
 import sys
 
 user_list2 = ['smilecode-2']  # 用于调试
@@ -39,15 +40,16 @@ def stat_user_info():
     # 从数据库加载昨天的统计信息, 账户映射信息, 奖牌信息
     yd_infos = sql_service.load_all_user_daily_info_by_day(yd)
     lc_to_git, medal_history, user_award, user_email = sql_service.load_account_info()
+
     user_list = []
     for u in medal_history:
         user_list.append(u)
     for u in user_list:
         # 获取刷题信息
-        res = leetcode_service.get_user_lc_stat_info(u)
-        if not res:
+        info = leetcode_service.get_user_lc_stat_info(u)
+        if not info:
             continue
-        td_infos[u] = res
+        td_infos[u] = info
         # 获取竞赛分数信息
         score = leetcode_service.get_user_score_info(u)
         user_score[u] = score
@@ -88,20 +90,15 @@ def stat_user_info():
             else:
                 # 如果今天晚上23点后统计还是没有刷题，则懒懒等级+1
                 if hour >= 23:
-                    t_l[5] = int(y_l[5])
+                    t_l[5] = 0
                     t_l[7] = int(y_l[7]) + 1
                 else:
                     t_l[5] = int(y_l[5])
                     t_l[7] = int(y_l[7])
         result.append(t_l)
-    print(result)
+        td_infos[u] = t_l
     logger.info(result)
 
-    award_service = award.LcAward(medal_history,
-                                  user_award,
-                                  user_email,
-                                  sql_service,
-                                  leetcode_service)
     # 将今日统计信息写入数据库
     for item in result:
         user = item[0]
@@ -110,11 +107,18 @@ def stat_user_info():
             sql_service.add_single_user_daily_info(td, item)
         else:
             sql_service.update_single_user_daily_info(td, item)
-        award_service.deal_award(item)
     logger.info("add into mysql finished")
+    # 游戏逻辑
+    award_service = award.LcAward(medal_history,
+                                  user_award,
+                                  user_email,
+                                  sql_service,
+                                  leetcode_service)
+    gameplay = game_play.GamePlay(award_service, td_infos, yd_infos)
+    if hour == 11:
+        gameplay.publish_rand_problem()
     if hour >= 23:  # 每日23点后处理目标状态
-        target_service = lc_target.TargetService()
-        target_service.deal_all_targets_status()
+        gameplay.run()
 
 
 if __name__ == '__main__':

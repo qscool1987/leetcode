@@ -42,3 +42,13 @@ create table user_target_info (
 	dead_line datetime not null,
 	primary key(id)
 ) engine=innoDB default charset=utf8;
+
+create table rand_problem_info (
+	id int auto_increment,
+	user varchar(128) not null default '',
+	lc_number int not null default 0,
+	status int not null default 0,
+	coins int not null default 0,
+	create_time datetime not null,
+	primary key(id)
+) engine=innoDB default charset=utf8;

@@ -7,6 +7,8 @@ from loghandle import logger
 import mysql_service
 import sys
 import mysql_service
+import time
+import datetime
 
 
 class LeetcodeService(object):
@@ -74,14 +76,40 @@ class LeetcodeService(object):
         problems = 0
         for item in data:
             problems += item['count']
-        line[1] = str(problems)
+        line[1] = problems
         return line
+
+    def check_user_rand_problem_status(self, user, pid):
+        data = {
+            "query": "\n    query recentAcSubmissions($userSlug: String!) {\n  recentACSubmissions(userSlug: $userSlug) {\n    submissionId\n    submitTime\n    question {\n      translatedTitle\n      titleSlug\n      questionFrontendId\n    }\n  }\n}\n    ",
+            "variables": {
+                "userSlug": user
+            }
+        }
+        res = requests.post(self.url, data=json.dumps(
+            data), headers=self.headers)
+        td = str(datetime.date.today())
+        pid = str(pid)
+        status = 3
+        data = res.json()['data']['recentACSubmissions']
+        for item in data:
+            t = item['submitTime']
+            day = datetime.datetime.fromtimestamp(t)
+            day = str(day).split(' ')[0]
+            if day < td:
+                break
+            question = item['question']
+            fid = question['questionFrontendId']
+            if pid == fid:
+                status = 2
+                break
+        return status
 
 
 if __name__ == '__main__':
     obj = LeetcodeService()
 
-    user = 'daydayup'
-    date_time = '2022-11-07'
-    res = obj.get_user_lc_stat_info(user)
+    user = 'smilecode-2'
+    id = 1732
+    res = obj.check_user_rand_problem_status(user, id)
     print(res)
