@@ -9,6 +9,7 @@ import random
 import datetime
 import email_service
 import lc_service
+import settings
 
 from loghandle import logger
 
@@ -42,19 +43,20 @@ class GamePlay(object):
         self.td_user_infos = {}
         self.yd_user_infos = {}
         self.user_td_coins = {}
-        pass
 
-    def run(self):
+    def run(self, day):
         self.deal_daily_coins()
         self._deal_award()
         logger.info("deal award finished")
         self.target_service.deal_all_targets_status()
         logger.info("deal target finished")
-        self.check_rand_problem_finish()
+        self.check_rand_problem_finish(day)
         logger.info("deal rand problem finished")
         self._update_user_coins()
         logger.info("update coins finished")
         logger.info(json.dumps(self.user_td_coins))
+        self._update_user_account_status()
+        logger.info("update account status finished")
 
     def _update_user_coins(self):
         for u in self.user_td_coins:
@@ -89,16 +91,25 @@ class GamePlay(object):
         solve_num_list = []
         for i in range(0, len(items)):
             score = items[i][1]['new_solve']
+            if score == items[i][1]['total_solve']:
+                continue
+            if score >= 100:
+                continue
             if score not in solve_num_list:
                 solve_num_list.append(score)
             if len(solve_num_list) >= 3:
                 break
-            # self.add_user_coins(u, 3-i)
         for i in range(0, len(solve_num_list)):
             score = solve_num_list[i]
             for item in items:
                 if item[1]['new_solve'] == score:
                     self.add_user_coins(item[0], 3-i)
+
+    def _update_user_account_status(self):
+        for user in self.td_user_infos:
+            td_info = self.td_user_infos[user]
+            if td_info['lazy_days'] >= settings.LazyLevel.LEVEL16:
+                self.sql_service.update_account_status(user, 1)
 
     def _calculate_user_add_coins(self, user):
         td_info = None
@@ -117,11 +128,11 @@ class GamePlay(object):
         else:
             delt_new_solve = td_info['total_solve'] - yd_info['total_solve']
             delt_problem_submit -= yd_info['problem_submit']
-        if delt_new_solve > 0:
+        if delt_new_solve > 0 and delt_new_solve < 100:
             add_n += 1
-        else:
+        elif delt_new_solve == 0:
             add_n -= 1
-        add_n += delt_problem_submit
+        add_n += delt_problem_submit * 3
         return add_n
 
     def _deal_award(self):
@@ -137,18 +148,15 @@ class GamePlay(object):
     def add_user_coins(self, user, coins):
         self.user_td_coins[user] += coins
 
-    def publish_rand_problem(self):  # 每天6点发布
+    def publish_rand_problem(self, td):  # 每天6点发布
         """抽题指定随机用户完成"""
         pid = random.randint(self.PNUM_START, self.PUNM_END)
         coins = random.randint(3, 5)
-        td = str(datetime.date.today())
         users = self.sql_service.load_all_email_users()
         k1 = random.randint(1, len(users))
         k2 = random.randint(1, len(users))
         user1 = users[k1-1][0]
         email1 = users[k1-1][1]
-        # user1 = 'smilecode-2'
-        # email1 = '595949643@qq.com'
         self.sql_service.add_rand_problem_record(user1, pid, coins, 1, td)
         bodystr = "恭喜！！\n你被随机抽中参与今天的幸运答题，leetcode题号为：" + \
             str(pid) + "，完成后可获得：" + str(coins) + \
@@ -161,8 +169,7 @@ class GamePlay(object):
         self.sql_service.add_rand_problem_record(user2, pid, coins, 1, td)
         email_service.EmailService.send_email(email2, bodystr)
 
-    def check_rand_problem_finish(self):
-        td = str(datetime.date.today())
+    def check_rand_problem_finish(self, td):
         infos = self.sql_service.load_rand_problem_info_by_day(td)
         leetcode_service = lc_service.LeetcodeService()
         for data in infos:
@@ -171,7 +178,7 @@ class GamePlay(object):
             lc_number = data[2]
             coins = data[4]
             status = leetcode_service.check_user_rand_problem_status(
-                user, lc_number)
+                user, lc_number, td)
             if status == 2:
                 self.add_user_coins(user, coins)
             else:
@@ -180,5 +187,16 @@ class GamePlay(object):
 
 
 if __name__ == '__main__':
+    leetcode_service = lc_service.LeetcodeService()
     obj = GamePlay()
-    obj.publish_rand_problem()
+    td = '2022-11-21'
+    infos = obj.sql_service.load_rand_problem_info_by_day(td)
+    print(infos)
+    for data in infos:
+        id = data[0]
+        user = data[1]
+        lc_number = data[2]
+        coins = data[4]
+        status = leetcode_service.check_user_rand_problem_status(
+            user, lc_number, td)
+        print(user, status)

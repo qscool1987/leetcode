@@ -5,6 +5,9 @@ import datetime
 import settings
 import sys
 
+problem_types = ["算法编程", "Java", "C++", "操作系统",
+                 "计算机网络", "mysql", "redis", "mq", "并发编程", "分布式系统"]
+
 
 class MysqlService(object):
     """
@@ -15,16 +18,19 @@ class MysqlService(object):
     FEEDBACK_INFO_TABLE = 'feedback_info'
     USER_ATGERT_INFO_TABLE = 'user_target_info'
     RAND_PROBLEM_INFO_TABLE = 'rand_problem_info'
+    INTERVIEW_PROBLEM_INFO_TABLE = 'interview_problem_info'
     USER_LC_DAILY_INFO_FIELDS = ['user', 'total_solve', 'code_submit',
                                  'problem_submit', 'rating_score', 'continue_days',
                                  'new_solve', 'lazy_days', 'date_time']
     ACCOUNT_INFO_FIELDS = ['user', 'git_account',
                            'medal', 'award', 'email', 'date_time', 'coins']
-    FEEDBACK_INFO_FIELDS = ['content', 'date_time']
+    FEEDBACK_INFO_FIELDS = ['content', 'status', 'answer', 'date_time']
     USER_ATGERT_INFO_FIELDS = ['user', 'target_type', 'target_value', 'opponent',
                                'status', 'create_date', 'dead_line', 'level']
     RAND_PROBLEM_INFO_FIELDS = [
         'user', 'lc_number', 'status', 'coins', 'create_time']
+    INTERVIEW_PROBLEM_INFO_FIELDS = [
+        'content', 'answer', 'type', 'company', 'jd']
 
     def __init__(self):
         self.port = 3306
@@ -228,6 +234,23 @@ class MysqlService(object):
             self.conn.close()
             return False
 
+    def update_account_status(self, user, status):
+        if not self._connect_mysql():
+            return False
+        sql = "update " + self.ACCOUNT_INFO_TABLE + " set status = %s \
+            where user = '%s'" % (status, user)
+        try:
+            self.cur.execute(sql)
+            self.conn.commit()
+            self.cur.close()
+            self.conn.close()
+        except Exception as e:
+            logger.error(e)
+            self.conn.rollback()
+            self.cur.close()
+            self.conn.close()
+            return False
+
     def add_account_info(self, user, git_user='', email='', award=0, medal=0, coins=100):
         if not self._connect_mysql():
             return False
@@ -270,7 +293,8 @@ class MysqlService(object):
     def load_all_email_users(self):
         if not self._connect_mysql():
             return False
-        sql = "select user, email from " + self.ACCOUNT_INFO_TABLE + " where email != ''"
+        sql = "select user, email from " + self.ACCOUNT_INFO_TABLE + \
+            " where email != '' and status = 0"
         try:
             self.cur.execute(sql)
             data = self.cur.fetchall()
@@ -283,11 +307,11 @@ class MysqlService(object):
             self.conn.close()
             return None
 
-    def load_account_info(self):
+    def load_all_account_infos(self):
         if not self._connect_mysql():
             return False
         sql = "select " + ",".join(self.ACCOUNT_INFO_FIELDS) + \
-            " from " + self.ACCOUNT_INFO_TABLE
+            " from " + self.ACCOUNT_INFO_TABLE + " where status < 1"
         try:
             self.cur.execute(sql)
             user_to_git = {}
@@ -368,8 +392,8 @@ class MysqlService(object):
         if not self._connect_mysql():
             return False
         sql = "insert into " + self.FEEDBACK_INFO_TABLE + " (" + \
-            ",".join(self.FEEDBACK_INFO_FIELDS) + ") values('%s', '%s')" \
-            % (content, date)
+            ",".join(self.FEEDBACK_INFO_FIELDS) + ") values('%s', %s, '%s', '%s')" \
+            % (content, 1, '', date)
         try:
             self.cur.execute(sql)
             self.conn.commit()
@@ -382,6 +406,59 @@ class MysqlService(object):
             self.cur.close()
             self.conn.close()
             return False
+
+    def update_feedback_status(self, id, status):
+        if not self._connect_mysql():
+            return False
+        sql = "update " + self.FEEDBACK_INFO_TABLE + \
+            " set status = %s where id = %d" % (status, id)
+        try:
+            self.cur.execute(sql)
+            self.conn.commit()
+            self.cur.close()
+            self.conn.close()
+            return True
+        except Exception as e:
+            logger.error(e)
+            self.conn.rollback()
+            self.cur.close()
+            self.conn.close()
+            return False
+
+    def update_feedback_answer(self, id, answer):
+        if not self._connect_mysql():
+            return False
+        sql = "update " + self.FEEDBACK_INFO_TABLE + \
+            " set answer = '%s' where id = %d" % (answer, id)
+        try:
+            self.cur.execute(sql)
+            self.conn.commit()
+            self.cur.close()
+            self.conn.close()
+            return True
+        except Exception as e:
+            logger.error(e)
+            self.conn.rollback()
+            self.cur.close()
+            self.conn.close()
+            return False
+
+    def load_feedback_info(self, pn, rn):
+        if not self._connect_mysql():
+            return False
+        sql = "select * from " + self.FEEDBACK_INFO_TABLE + \
+            " order by date_time desc limit %s, %s" % (pn, rn)
+        try:
+            self.cur.execute(sql)
+            data = self.cur.fetchall()
+            self.cur.close()
+            self.conn.close()
+            return data
+        except Exception as e:
+            logger.error(e)
+            self.cur.close()
+            self.conn.close()
+            return None
 
     def update_user_problem_number(self, user, num, date_time):
         if not self._connect_mysql():
@@ -440,7 +517,8 @@ class MysqlService(object):
         if not self._connect_mysql():
             return False
         sql = "select * " + \
-            " from " + self.USER_ATGERT_INFO_TABLE + " where level = 0"
+            " from " + self.USER_ATGERT_INFO_TABLE + \
+            " where target_type in (6, 7) and status = 1"
         try:
             self.cur.execute(sql)
             data = self.cur.fetchall()
@@ -560,11 +638,102 @@ class MysqlService(object):
             self.conn.close()
             return None
 
+    def load_rand_problem_infos(self, pn, rn):
+        if not self._connect_mysql():
+            return False
+        sql = "select *  from " + self.RAND_PROBLEM_INFO_TABLE + \
+            " order by create_time desc limit %s, %s" % (pn, rn)
+        try:
+            self.cur.execute(sql)
+            data = self.cur.fetchall()
+            self.cur.close()
+            self.conn.close()
+            return data
+        except Exception as e:
+            logger.error(e)
+            self.cur.close()
+            self.conn.close()
+            return None
+
     def update_rand_problem_status(self, id, status):
         if not self._connect_mysql():
             return False
         sql = "update " + self.RAND_PROBLEM_INFO_TABLE + \
             " set status = %s where id = %s" % (status, id)
+        try:
+            self.cur.execute(sql)
+            self.conn.commit()
+            self.cur.close()
+            self.conn.close()
+            return True
+        except Exception as e:
+            logger.warning(e)
+            self.conn.rollback()
+            self.cur.close()
+            self.conn.close()
+            return False
+
+    def load_interview_problems(self, pn, rn, pt=-1):
+        if pt >= len(problem_types):
+            return []
+        if not self._connect_mysql():
+            return False
+        if pt == -1:
+            sql = "select * from " + self.INTERVIEW_PROBLEM_INFO_TABLE + \
+                " limit %s, %s" % (pn, rn)
+        else:
+            pt = problem_types[pt]
+            sql = "select * from " + self.INTERVIEW_PROBLEM_INFO_TABLE + \
+                " where type = '%s' limit %s, %s" % (pt, pn, rn)
+        try:
+            self.cur.execute(sql)
+            data = self.cur.fetchall()
+            self.cur.close()
+            self.conn.close()
+            return data
+        except Exception as e:
+            logger.error(e)
+            self.cur.close()
+            self.conn.close()
+            return None
+
+    def add_interview_problem(self, content, answer, problem_type, company, jd):
+        if not self._connect_mysql():
+            return False
+        sql = "insert into " + self.INTERVIEW_PROBLEM_INFO_TABLE + " (" + \
+            ",".join(self.INTERVIEW_PROBLEM_INFO_FIELDS) + ") values('%s', '%s', '%s', '%s', '%s')" \
+            % (content, answer, problem_type, company, jd)
+        try:
+            self.cur.execute(sql)
+            self.conn.commit()
+            self.cur.close()
+            self.conn.close()
+            return True
+        except Exception as e:
+            logger.error(e)
+            self.cur.close()
+            self.conn.close()
+            return False
+
+    def update_interview_problem_answer(self, id, answer):
+        sql = "update " + self.INTERVIEW_PROBLEM_INFO_TABLE + \
+            " set answer = %s where id = %s" % (answer, id)
+        try:
+            self.cur.execute(sql)
+            self.conn.commit()
+            self.cur.close()
+            self.conn.close()
+            return True
+        except Exception as e:
+            logger.warning(e)
+            self.conn.rollback()
+            self.cur.close()
+            self.conn.close()
+            return False
+
+    def update_interview_problem_jd(self, id, jd):
+        sql = "update " + self.INTERVIEW_PROBLEM_INFO_TABLE + \
+            " set jd = %s where id = %s" % (jd, id)
         try:
             self.cur.execute(sql)
             self.conn.commit()
@@ -588,10 +757,5 @@ if __name__ == '__main__':
     date = '2022-11-19'
     obj = MysqlService()
     # obj.add_rand_problem_record(user, lc_number, coins, status, date)
-    res = obj.load_rand_problem_info_by_day(date)
+    res = obj.load_rand_problem_infos(0, 10)
     print(res)
-    status = 2
-    for data in res:
-        id = data[0]
-        status = 3
-        obj.update_rand_problem_status(id, status)
