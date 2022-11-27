@@ -55,8 +55,6 @@ class LcAward(object):
         bit位表示奖励触发条件是否满足，如果同一天同事多个条件满足，则选择最低bit位发放
         """
         user = td_info[0]
-        if user not in self.user_email:  # 没有提供邮件的就只能遗憾了
-            return
         td_medal = 0
         medal = self.leetcode_service.get_user_medal_info(user)  # 获取用户当前lc奖牌信息
         if medal == 1:
@@ -70,11 +68,23 @@ class LcAward(object):
         if td_info[5] >= self.ContinueDaysNum:
             td_medal += settings.MedalType.ContinueDays
         if td_medal <= self.medal_history[user]:
-            return
+            return None
         td_award = self.medal_history[user] ^ td_medal
         td_award = td_award & (-td_award)  # 取最低bit位的奖励进行发放
+        self.sql_service.update_user_medal(user, td_medal)
+        if user not in self.user_email:  # 没有提供邮件的就只能遗憾了
+            return None
         to_addr = self.user_email[user]
         if self.user_award[user] == 0:
+            info = self.sql_service.search_account(user)
+            entry_day = str(info[-1])
+            if entry_day <= "2022-11-04":
+                bodystr = self.Congratulations[td_award] + self.award_str
+                self.emailobj.send_email(to_addr, bodystr)
+                self.sql_service.update_user_award(user, 1)
+                logger.info(
+                    "send email to {} for award congratuation".format(user))
+                return td_award
             if self._rand_hit_award():  # 概率中奖
                 bodystr = self.Congratulations[td_award] + self.award_str
                 self.emailobj.send_email(to_addr, bodystr)
@@ -86,12 +96,13 @@ class LcAward(object):
                 self.emailobj.send_email(to_addr, bodystr)
                 logger.info(
                     "send email to {} for stage congratuation".format(user))
+            return td_award
         elif self.user_award[user] == 1:
             bodystr = self.Congratulations[td_award]
             self.emailobj.send_email(to_addr, bodystr)
             logger.info(
                 "send email to {} for stage congratuation".format(user))
-        sql_service.update_user_medal(user, td_medal)
+            return td_award
 
     def _rand_hit_award(self):
         k1 = random.randint(1, 100)
@@ -107,7 +118,7 @@ if __name__ == '__main__':
     medal_history = {}
     medal_history[user] = 4
     user_award = {}
-    user_award[user] = 1
+    user_award[user] = 0
     user_email = {}
     user_email[user] = "595949643@qq.com"
     sql_service = mysql_service.MysqlService()
@@ -118,6 +129,6 @@ if __name__ == '__main__':
                   sql_service,
                   leetcode_service)
     info = ['smilecode-2', 724, 14406, 15, 1815, 100, 4, 1]
-    # obj.deal_award(info)
+    obj.deal_award(info)
 
-    print(obj._rand_hit_award())
+    # print(obj._rand_hit_award())
