@@ -18,6 +18,7 @@ class EmailService(object):
         """
         ret = True
         try:
+            bodystr = bodystr
             msg = MIMEMultipart()
             msg.attach(MIMEText(bodystr, 'plain', 'utf-8'))
             msg['Subject'] = "leetcode刷题通知！"

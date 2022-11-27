@@ -62,11 +62,11 @@ class LcAward(object):
         elif medal == 2:
             td_medal = 3  # 如果上g，则自动认为已经完成上k的条件
         if td_info[2] >= self.CodeSubmitNum:
-            td_medal += settings.MedalType.CodeSubmit
+            td_medal += MedalType.CodeSubmit
         if td_info[3] >= self.ProblemSubmitNum:
-            td_medal += settings.MedalType.ProblemSubmit
+            td_medal += MedalType.ProblemSubmit
         if td_info[5] >= self.ContinueDaysNum:
-            td_medal += settings.MedalType.ContinueDays
+            td_medal += MedalType.ContinueDays
         if td_medal <= self.medal_history[user]:
             return None
         td_award = self.medal_history[user] ^ td_medal
@@ -108,6 +108,7 @@ class LcAward(object):
         k1 = random.randint(1, 100)
         k2 = random.randint(1, 100)
         mul = k1 * k2
+        logger.info("award number : {}".format(mul))
         if mul >= 10 and mul % 10 == 0:
             return True
         return False

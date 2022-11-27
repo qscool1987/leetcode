@@ -67,7 +67,6 @@ class LeetcodeService(object):
             data), headers=self.headers)
         data = res.json()[
             'data']['userProfileUserQuestionProgress']['numAcceptedQuestions']
-        logger.info(data)
         if len(data) == 0:
             return None
         line = [0] * \
@@ -79,7 +78,7 @@ class LeetcodeService(object):
         line[1] = problems
         return line
 
-    def check_user_rand_problem_status(self, user, pid):
+    def check_user_rand_problem_status(self, user, pid, td):
         data = {
             "query": "\n    query recentAcSubmissions($userSlug: String!) {\n  recentACSubmissions(userSlug: $userSlug) {\n    submissionId\n    submitTime\n    question {\n      translatedTitle\n      titleSlug\n      questionFrontendId\n    }\n  }\n}\n    ",
             "variables": {
@@ -88,7 +87,7 @@ class LeetcodeService(object):
         }
         res = requests.post(self.url, data=json.dumps(
             data), headers=self.headers)
-        td = str(datetime.date.today())
+        # td = str(datetime.date.today())
         pid = str(pid)
         status = 3
         data = res.json()['data']['recentACSubmissions']
@@ -111,5 +110,3 @@ if __name__ == '__main__':
 
     user = 'smilecode-2'
     id = 1732
-    res = obj.check_user_rand_problem_status(user, id)
-    print(res)
