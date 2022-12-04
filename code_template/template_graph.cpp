@@ -14,46 +14,29 @@ using namespace std;
 long long UPLIMIT = 1LL << 60;
 
 /*
- 功能：检查是否所有节点都访问过，是则返回true，否则返回false 并且返回当前距离最小的节点
- 参数1：visited用于存储节点是否被访问过
- 参数2：dis用于存储到达该节点的最短距离，其下标表示节点编号
- 参数3：v为出参，返回当前dis列表中距离最小的节点的编号
- 返回值：bool
+ 功能：求出节点start到达其他所有节点的最短距离
+ 参数1：g.size() 为节点个数， g[i] 存储了与节点i相邻的节点编号和距离
+ 参数2：start为起始节点
+ 返回：vector<int> start 到其他节点的最短距离
  */
-bool check_all_visited(vector<bool>& visited, vector<long long>& dis, int& v) {
-    long long  mn = UPLIMIT;
-    for (int i = 0; i < visited.size(); ++i) {
-        if (!visited[i]) {
-            if (mn > dis[i]) {
-                v = i;
-                mn = dis[i];
+vector<int> dijkstra(vector<vector<pair<int, int>>> &g, int start) {
+    vector<int> dist(g.size(), INT_MAX);
+    dist[start] = 0;
+    priority_queue<pair<int, int>, vector<pair<int, int>>, greater<>> pq; //小顶堆，保存到顶点的距离和顶点编号
+    pq.emplace(0, start); //初始化 将起始节点入队
+    while (!pq.empty()) {
+        auto[d, x] = pq.top();
+        pq.pop();
+        if (d > dist[x]) continue;  //dist[x] 可能已经被更新过了
+        for (auto[y, wt] : g[x]) {
+            int new_d = dist[x] + wt;
+            if (new_d < dist[y]) {
+                dist[y] = new_d;
+                pq.emplace(new_d, y);
             }
         }
     }
-    return mn == UPLIMIT;
-}
-
-/*
- 功能：求出节点v到达其他所有节点的最短距离
- 参数1：grid为n*n的矩阵，grid[i][j]表示由节点i到达节点j的距离
- 参数2：grap为无向图，用临接矩阵表示，存储节点之间的联通状态
- 参数3：visited用于存储节点是否被访问过
- 参数4：dis用于存储到达该节点的最短距离，其下标表示节点编号
- 参数5：指定的起始节点编号 范围为 [0, visited.size == grap.size]
- 返回：void
- */
-void shortest_path(vector<vector<int>>& grid, vector<vector<int>>& grap,
-                   vector<bool>& visited, vector<long long>& dis, int v) {
-    dis[v] = 0;
-    while (true) {
-        visited[v] = true;
-        for (auto x : grap[v]) {
-            if (dis[x] > dis[v] + grid[v][x]) {
-                dis[x] = dis[v] + grid[v][x];
-            }
-        }
-        if (check_all_visited(visited, dis, v)) break;
-    }
+    return dist;
 }
 
 /*
@@ -84,35 +67,4 @@ vector<int> topology_sort(int n, vector<vector<int>>& grap) {
         }
     }
     return ans;
-}
-
-
-int main() {
-    vector<vector<int>> roads = {{0,6,7},{0,1,2},{1,2,3},{1,3,3},{6,3,3},{3,5,1},{6,5,1},{2,5,1},{0,4,5},{4,6,2}};
-    int n = 7;
-    vector<long long> dis;
-    vector<bool> visited;
-    vector<vector<int>> grid;
-    vector<vector<int>> grap(n); // 用于最短路径
-    vector<vector<int>> grap2(n); // 用于拓扑排序
-    grid.resize(n, vector<int>(n, 0));
-    dis.resize(n, UPLIMIT);
-    visited.resize(n, false);
-    for(auto& v : roads) {
-        grap[v[0]].push_back(v[1]);
-        grap[v[1]].push_back(v[0]);
-        grid[v[0]][v[1]] = v[2];
-        grid[v[1]][v[0]] = v[2];
-        grap2[v[0]].push_back(v[1]);
-    }
-    shortest_path(grid, grap, visited, dis, 0);
-    for(int i = 0; i < dis.size(); ++i) {
-        cout << i << ", " << dis[i] << endl;
-    }
-    auto ans = topology_sort(n, grap2);
-    for(auto x : ans) {
-        cout << x << " ";
-    }
-    cout << endl;
-    return 0;
 }
