@@ -1,5 +1,8 @@
 """
-用户自定义目标
+目标服务类
+1.评估用户目标等级
+2.处理目标完成状态
+
 """
 from math import ceil, floor
 import mysql_service
@@ -7,7 +10,6 @@ from loghandle import logger
 import datetime
 from dateutil.parser import parse
 from lc_error import ErrorCode
-import math
 import email_service
 from loghandle import logger
 
@@ -197,13 +199,27 @@ class TargetService(object):
                 nowinfo, opponent, dead_line)
         return errcode, level
 
+    def _cal_delt_days_level(self, delt_days):
+        level = 1
+        if delt_days >= 15 and delt_days < 30:
+            level = 2
+        elif delt_days >= 30 and delt_days < 45:
+            level = 1.5
+        elif delt_days >= 45 and delt_days < 60:
+            level = 1.2
+        else:
+            level = 1
+        return level
+
     def evaluate_problem_solve_target_level(self, nowinfo, target_val, dead_line):
         if nowinfo[1] >= target_val:  # 目标不合理
             return ErrorCode.PROBLEM_NUM_OVER, 0
         diff_val = target_val - nowinfo[1]
         delt_days = self._delt_days(dead_line)
         avg = diff_val / delt_days
-        avg = floor(avg)
+        print(avg, delt_days)
+        delt_days_level = self._cal_delt_days_level(delt_days)
+        avg = floor(avg / delt_days_level)
         level = 0
         if avg == 0:
             return ErrorCode.AVG_PROBLEM_NUM_SMALL, level
@@ -211,13 +227,13 @@ class TargetService(object):
             level = TargetLevel.VERY_EASY
         elif avg == 2:
             level = TargetLevel.EASY
-        elif avg == 3:
+        elif avg in [3, 4]:
             level = TargetLevel.MID
-        elif avg == 4:
+        elif avg in [5, 6]:
             level = TargetLevel.LITTLE_HARD
-        elif avg == 5:
+        elif avg == 7:
             level = TargetLevel.HARD
-        elif avg == 6:
+        elif avg == 8:
             level = TargetLevel.VERY_HARD
         else:
             level = TargetLevel.UNBELIEVABLE
@@ -229,7 +245,8 @@ class TargetService(object):
         diff_val = target_val - nowinfo[2]
         delt_days = self._delt_days(dead_line)
         avg = diff_val / delt_days
-        avg = floor(avg)
+        delt_days_level = self._cal_delt_days_level(delt_days)
+        avg = floor(avg / delt_days_level)
         level = 0
         if avg < 5:
             return ErrorCode.AVG_CODELINE_NUM_SMALL, 0
@@ -255,7 +272,8 @@ class TargetService(object):
         diff_val = target_val - nowinfo[3]
         delt_days = self._delt_days(dead_line)
         avg = 3 * diff_val / delt_days
-        avg = floor(avg)
+        delt_days_level = self._cal_delt_days_level(delt_days)
+        avg = floor(avg / delt_days_level)
         level = 0
         if avg <= 1:
             level = TargetLevel.VERY_EASY
@@ -353,7 +371,7 @@ class TargetService(object):
             return ErrorCode.RATING_GAP_SMALL, 0
         delt_days = self._delt_days(dead_line)
         if delt_days < 30:
-            return ErrorCode.DATETIME_GAP_SHORT, 0
+            return ErrorCode.DATETIME_GAP_SHORT2, 0
         nowscore = nowinfo[4]
         pvar = self._cal_rating_param(nowscore, target_val)
         level = self._cal_rating_target_level(diff_val, delt_days, pvar)
@@ -370,7 +388,7 @@ class TargetService(object):
         diff_val = other[4] - you[4]
         delt_days = self._delt_days(dead_line)
         if delt_days < 30:
-            return ErrorCode.DATETIME_GAP_SHORT, 0
+            return ErrorCode.DATETIME_GAP_SHORT2, 0
         pvar = 1
         nowscore = you[4]
         target_val = other[4]
@@ -442,7 +460,7 @@ class TargetService(object):
 
     def judge_problem_solve_target(self, user, target_value, dead_line):
         info = self.sql_service.search_user_recent_info(user)
-        if info[-1] > dead_line:
+        if info[-1] >= dead_line:
             return TargetStatus.FAIL
         if target_value <= info[1]:
             return TargetStatus.SUCC
@@ -450,7 +468,7 @@ class TargetService(object):
 
     def judge_code_submit_target(self, user, target_value, dead_line):
         info = self.sql_service.search_user_recent_info(user)
-        if info[-1] > dead_line:
+        if info[-1] >= dead_line:
             return TargetStatus.FAIL
         if target_value <= info[2]:
             return TargetStatus.SUCC
@@ -458,7 +476,7 @@ class TargetService(object):
 
     def judge_problem_submit_target(self, user, target_value, dead_line):
         info = self.sql_service.search_user_recent_info(user)
-        if info[-1] > dead_line:
+        if info[-1] >= dead_line:
             return TargetStatus.FAIL
         if target_value <= info[3]:
             return TargetStatus.SUCC
@@ -466,15 +484,15 @@ class TargetService(object):
 
     def judge_continue_days_target(self, user, target_value, dead_line):
         info = self.sql_service.search_user_recent_info(user)
-        if info[-1] > dead_line:
+        if info[-1] >= dead_line: #如果当前日期大于deadline则失败
             return TargetStatus.FAIL
-        if target_value <= info[5]:
+        if target_value <= info[5]: #如果目标值比当前值小则成功
             return TargetStatus.SUCC
         return TargetStatus.PROCESSING
 
     def judge_rating_target(self, user, target_value, dead_line):
         info = self.sql_service.search_user_recent_info(user)
-        if info[-1] > dead_line:
+        if info[-1] >= dead_line:
             return TargetStatus.FAIL
         if target_value <= info[4]:
             return TargetStatus.SUCC
@@ -484,24 +502,33 @@ class TargetService(object):
         you = self.sql_service.search_user_recent_info(user)
         other = self.sql_service.search_user_recent_info(
             opponent)
-        if you[-1] > dead_line:
+        if you[-1] >= dead_line:
             return TargetStatus.FAIL
-        if you[4] > other[4]:
+        if you[-1] == dead_line and you[4] > other[4]:
             return TargetStatus.SUCC
         return TargetStatus.PROCESSING
+
+    def get_user_unfinished_targets(self, user):
+        return self.sql_service.load_single_user_unfinished_target_info(user)
+
+    def add_user_target(self, info):
+        return self.sql_service.add_user_target(info)
 
 
 if __name__ == '__main__':
     import game_play
     user = 'smilecode-2'
-    target_type = 7
-    target_val = 1800
+    target_type = 2
+    target_val = 970
     opponent = "CNLYJ"
-    dead_line = '2022-12-31'
+    dead_line = '2022-12-23'
     sql_service = mysql_service.MysqlService()
     gameplay = game_play.GamePlay()
     obj = TargetService(sql_service, gameplay)
-    obj._deal_challenge_target(user, opponent, dead_line)
+    # obj.judge_challenge_target(user, opponent, dead_line)
+    err, level = obj.evaluate_target_level(
+        user, target_type, target_val=target_val, dead_line=dead_line)
+    print(err, level)
     # obj.deal_all_targets_status()
     # target_infos = sql_service.load_all_unfinished_target_info2()
     # for target in target_infos:

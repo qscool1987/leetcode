@@ -1,0 +1,1 @@
+import{aP as n,B as e,L as a,C as c,D as _,aQ as s,$ as o}from"./index.10b7dc21.js";const i={};function l(t,r){return e(),a("h2",null,"Interview")}const u=n(i,[["render",l]]),h={__name:"VirtualInterview",setup(t){return(r,f)=>(e(),c(s,null,{the_interview:_(()=>[o(u)]),_:1}))}};export{h as default};

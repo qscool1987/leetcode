@@ -22,7 +22,7 @@ def get_all_user_daily_info():
     yd = td + datetime.timedelta(days=-1)
     sql_service = mysql_service.MysqlService()
     data = sql_service.load_all_user_daily_info_by_day(str(td))
-    if len(data) == 0:
+    if not data or len(data) == 0:
         data = sql_service.load_all_user_daily_info_by_day(str(yd))
     user_coins = sql_service.load_all_account_coins()
     info = []
@@ -256,7 +256,7 @@ def submit_target_info():
                 ret[1] = ErrorCode.error_message(ret[0])
                 return json.dumps(ret)
             target_val = int(target_val)
-        user_targets = sql_service.load_single_user_unfinished_target_info(
+        user_targets = target_service.get_user_unfinished_targets(
             lc_account)
         for item in user_targets:
             if item[2] == target_type:
@@ -283,7 +283,7 @@ def submit_target_info():
             return json.dumps(ret)
         info[-1] = level
         logger.info(info)
-        sql_service.add_user_target(info)
+        target_service.add_user_target(info)
         return json.dumps(ret)
     except Exception as ex:
         logger.warning(ex)

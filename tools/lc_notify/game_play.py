@@ -31,7 +31,7 @@ class CoinEvent:
 
 class GamePlay(object):
     PNUM_START = 1
-    PUNM_END = 2800
+    PUNM_END = 2489
 
     def __init__(self, award_service=None, tday_infos={}, yday_infos={}):
         self.sql_service = mysql_service.MysqlService()

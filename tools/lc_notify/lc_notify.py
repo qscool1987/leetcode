@@ -40,7 +40,7 @@ def stat_user_info():
     yd = str(yd)
     # 从数据库加载昨天的统计信息, 账户映射信息, 奖牌信息
     yd_infos = sql_service.load_all_user_daily_info_by_day(yd)
-    lc_to_git, medal_history, user_award, user_email = sql_service.load_all_account_infos()
+    lc_to_git, medal_history, _, _ = sql_service.load_all_account_infos()
 
     user_list = []
     for u in medal_history:
@@ -112,18 +112,13 @@ def stat_user_info():
             sql_service.update_single_user_daily_info(td, item)
     logger.info("add into mysql finished")
     # 游戏逻辑
-    award_service = award.LcAward(medal_history,
-                                  user_award,
-                                  user_email,
-                                  sql_service,
-                                  leetcode_service)
+    award_service = award.LcAward()
     gameplay = game_play.GamePlay(award_service, td_infos, yd_infos)
     if hour == 6:
         gameplay.publish_rand_problem(td)
     if hour >= 23:
         logger.info("begin to play game!")
         gameplay.run(td)
-    
 
 
 if __name__ == '__main__':

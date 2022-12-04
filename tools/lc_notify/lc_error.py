@@ -19,6 +19,7 @@ class ErrorCode:
     NO_RATING_SCORE = 17
     AVG_PROBLEM_NUM_SMALL = 18
     AVG_CODELINE_NUM_SMALL = 19
+    DATETIME_GAP_SHORT2 = 20
     errors = {
         0: "succ",
         1: "leetcode 账号不存在!",
@@ -39,7 +40,8 @@ class ErrorCode:
         16: "你要挑战的人不存在，请重新设置!",
         17: "你还没有参加过周赛，请先参加完一场周赛!",
         18: "日均刷题数量需要大于等于1题",
-        19: "日均提交代码量需要大于等于5行"
+        19: "日均提交代码量需要大于等于5行",
+        20: "目标完成时间距离今天太短或者太长，请设置大于等于30天，小于等于365天!"
     }
 
     @classmethod
