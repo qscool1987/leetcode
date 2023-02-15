@@ -408,9 +408,13 @@ class TargetService(object):
 
     def deal_all_targets_status(self):
         target_infos = self.sql_service.load_all_unfinished_target_info()
+        user_infos = {}
+        user_accounts = {}
         for target in target_infos:
             id = target[0]
             user = target[1]
+            # if user != 'smilecode-2':  # 调试代码
+            #     continue
             target_type = target[2]
             target_value = target[3]
             opponent = target[4]
@@ -454,6 +458,48 @@ class TargetService(object):
                 if target_type == TargetType.Challenge:
                     self.game_play.add_user_coins(
                         opponent, TargetLevel.from_level_to_score(level))
+            elif status == TargetStatus.PROCESSING and target_type == TargetType.ProblemSolve:
+                # 通知用户 抓紧完成目标
+                user_account = None
+                if user in user_accounts:
+                    user_account = user_accounts[user]
+                else:
+                    user_account = self.sql_service.search_account(user)
+                    user_accounts[user] = user_account
+                email_addr = user_account[4]
+                if email_addr != '':
+                    user_info = None
+                    if user in user_infos:
+                        user_info = user_infos[user]
+                    else:
+                        user_info = self.sql_service.search_user_recent_info(
+                            user)
+                        user_infos[user] = user_info
+                    current_problem_solve = user_info[1]
+                    current_rating_score = user_info[4]
+                    current_continue_days = user_info[5]
+                    days = self._delt_days(str(dead_line))  # 剩余天数
+                    if target_type == TargetType.Rank:
+                        pass
+                    elif target_type == TargetType.ProblemSolve:
+                        delt = target_value - current_problem_solve
+                        avg = ceil(delt / days)
+                        if avg >= 3:
+                            msg = "亲～，您有一个刷题目标需要完成，您当前的刷题数量为: {}， 目标值为: {}，剩余" \
+                                "天数为: {}，您至少每天需要完成: {} 题才能达成目标！！加油，奥利给！！".format(current_problem_solve,
+                                                                                 target_value, days, avg)
+                            email_service.EmailService.send_email(
+                                email_addr, msg)
+                    elif target_type == TargetType.CodeSubmit:
+                        pass
+                    elif target_type == TargetType.ProblemSubmit:
+                        pass
+                    elif target_type == TargetType.ContinueDays:
+                        pass
+                    elif target_type == TargetType.Rating:
+                        pass
+                    elif target_type == TargetType.Challenge:
+                        pass
 
     def judge_rank_target(self, user, target_value, dead_line):
         pass
@@ -484,9 +530,9 @@ class TargetService(object):
 
     def judge_continue_days_target(self, user, target_value, dead_line):
         info = self.sql_service.search_user_recent_info(user)
-        if info[-1] >= dead_line: #如果当前日期大于deadline则失败
+        if info[-1] >= dead_line:  # 如果当前日期大于deadline则失败
             return TargetStatus.FAIL
-        if target_value <= info[5]: #如果目标值比当前值小则成功
+        if target_value <= info[5]:  # 如果目标值比当前值小则成功
             return TargetStatus.SUCC
         return TargetStatus.PROCESSING
 
@@ -525,10 +571,11 @@ if __name__ == '__main__':
     sql_service = mysql_service.MysqlService()
     gameplay = game_play.GamePlay()
     obj = TargetService(sql_service, gameplay)
-    # obj.judge_challenge_target(user, opponent, dead_line)
-    err, level = obj.evaluate_target_level(
-        user, target_type, target_val=target_val, dead_line=dead_line)
-    print(err, level)
+    obj.deal_all_targets_status()
+    # # obj.judge_challenge_target(user, opponent, dead_line)
+    # err, level = obj.evaluate_target_level(
+    #     user, target_type, target_val=target_val, dead_line=dead_line)
+    # print(err, level)
     # obj.deal_all_targets_status()
     # target_infos = sql_service.load_all_unfinished_target_info2()
     # for target in target_infos:

@@ -64,7 +64,9 @@ def stat_user_info():
     for u in user_d_infos:
         infos = user_d_infos[u]
         dt = infos[-1][8] - infos[0][8]
-        dt = dt.days
+        dt = dt.days + 1
+        if dt <= 0:
+            continue
         # print(dt)
         acc = 0
         pdt = infos[-1][1] - infos[0][1]
