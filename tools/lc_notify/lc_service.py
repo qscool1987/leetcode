@@ -73,6 +73,7 @@ class LeetcodeService(object):
             (len(mysql_service.MysqlService.USER_LC_DAILY_INFO_FIELDS) - 1)
         line[0] = user
         problems = 0
+        print(data)
         for item in data:
             problems += item['count']
         line[1] = problems
@@ -110,3 +111,4 @@ if __name__ == '__main__':
 
     user = 'smilecode-2'
     id = 1732
+    print(obj.get_user_lc_stat_info(user))

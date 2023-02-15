@@ -31,7 +31,7 @@ class CoinEvent:
 
 class GamePlay(object):
     PNUM_START = 1
-    PUNM_END = 2800
+    PUNM_END = 2489
 
     def __init__(self, award_service=None, tday_infos={}, yday_infos={}):
         self.sql_service = mysql_service.MysqlService()
@@ -89,11 +89,13 @@ class GamePlay(object):
         items = sorted(
             items, key=lambda data: data[1]['new_solve'], reverse=True)
         solve_num_list = []
-        for i in range(0, len(items)):
-            score = items[i][1]['new_solve']
-            if score == items[i][1]['total_solve']:
+        except_users = set()
+        for user, item in items:
+            score = item['new_solve']   #用户今日刷题量
+            if score >= item['total_solve']: #今日新加入的，或者近日重新复活的
+                except_users.add(user)
                 continue
-            if score >= 100:
+            if score >= 100 or score <= 0: #除去异常数据
                 continue
             if score not in solve_num_list:
                 solve_num_list.append(score)
@@ -101,9 +103,13 @@ class GamePlay(object):
                 break
         for i in range(0, len(solve_num_list)):
             score = solve_num_list[i]
-            for item in items:
-                if item[1]['new_solve'] == score:
-                    self.add_user_coins(item[0], 3-i)
+            for user, item in items:
+                if user in except_users:
+                    continue
+                if item['new_solve'] < score:
+                    break
+                if item['new_solve'] == score:
+                    self.add_user_coins(user, 3-i)
 
     def _update_user_account_status(self):
         for user in self.td_user_infos:
@@ -190,13 +196,6 @@ if __name__ == '__main__':
     leetcode_service = lc_service.LeetcodeService()
     obj = GamePlay()
     td = '2022-11-21'
-    infos = obj.sql_service.load_rand_problem_info_by_day(td)
-    print(infos)
-    for data in infos:
-        id = data[0]
-        user = data[1]
-        lc_number = data[2]
-        coins = data[4]
-        status = leetcode_service.check_user_rand_problem_status(
-            user, lc_number, td)
-        print(user, status)
+    
+    
+    
