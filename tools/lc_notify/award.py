@@ -73,13 +73,13 @@ class LcAward(object):
         if self.user_award[user] == 0:
             info = self.sql_service.search_account(user)
             entry_day = str(info[-1])
-            if entry_day <= "2022-11-04":
-                bodystr = self.Congratulations[td_award] + self.award_str
-                email_service.EmailService.send_email(to_addr, bodystr)
-                self.sql_service.update_user_award(user, 1)
-                logger.info(
-                    "send email to {} for award congratuation".format(user))
-                return td_award
+            # if entry_day <= "2022-11-04":
+            #     bodystr = self.Congratulations[td_award] + self.award_str
+            #     email_service.EmailService.send_email(to_addr, bodystr)
+            #     self.sql_service.update_user_award(user, 1)
+            #     logger.info(
+            #         "send email to {} for award congratuation".format(user))
+            #     return td_award
             if self._rand_hit_award():  # 概率中奖
                 bodystr = self.Congratulations[td_award] + self.award_str
                 email_service.EmailService.send_email(to_addr, bodystr)
@@ -100,12 +100,12 @@ class LcAward(object):
             return td_award
 
     def _rand_hit_award(self):
-        k1 = random.randint(1, 100)
-        k2 = random.randint(1, 100)
-        mul = k1 * k2
-        logger.info("award number : {}".format(mul))
-        if mul >= 10 and mul % 10 == 0:
-            return True
+        # k1 = random.randint(1, 100)
+        # k2 = random.randint(1, 100)
+        # mul = k1 * k2
+        # logger.info("award number : {}".format(mul))
+        # if mul >= 10 and mul % 10 == 0:
+        #     return True
         return False
 
 

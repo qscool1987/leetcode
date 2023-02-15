@@ -84,6 +84,12 @@ class MysqlService(object):
             continue_days=%s, new_solve=%s, lazy_days=%s where user = '%s' and  date_time ='%s'" % (data[1],
                                                                                                     data[2], data[3], data[4], data[5], data[6], data[7], data[0], date)
         return self._update(sql)
+    def reset_single_user_lazy_days(self, user):
+        if not self._connect_mysql():
+            return False
+        sql = "update " + self.USER_LC_DAILY_INFO_TABLE + " set \
+            lazy_days=0 where user = '%s'" % user
+        return self._update(sql)
 
     def serach_single_user_daily_info(self, user, date):
         if not self._connect_mysql():
