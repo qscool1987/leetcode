@@ -1,7 +1,7 @@
 """
 管理游戏币的各种奖励，惩罚事件
 """
-import mysql_service
+import award
 import award
 import lc_target
 import json
@@ -10,6 +10,12 @@ import datetime
 import email_service
 import lc_service
 import settings
+from target_info_dao import TargetRecord, DaoTargetInfo
+from rand_problem_dao import RandProblemRecord, DaoRandProblem
+from interview_problem_dao import InterviewProblemRecord, DaoInterviewProblem
+from feedback_dao import FeedbackRecord, DaoFeedback
+from daily_info_dao import DaoDailyInfo, UserDailyInfoRecord
+from account_info_dao import AccountInfoRecord, DaoAccountInfo
 
 from loghandle import logger
 
@@ -32,17 +38,18 @@ class CoinEvent:
 class GamePlay(object):
     PNUM_START = 1
     PUNM_END = 2489
+    TOPN = 5
+    UPSCORE = 10
 
-    def __init__(self, award_service=None, tday_infos={}, yday_infos={}):
-        self.sql_service = mysql_service.MysqlService()
-        self.award_service = award_service  # 奖励服务
-        self.target_service = lc_target.TargetService(
-            self.sql_service, self)  # 目标服务
-        self.tday_infos = tday_infos
-        self.yday_infos = yday_infos
-        self.td_user_infos = {}
-        self.yd_user_infos = {}
+    def __init__(self, tday_infos={}, yday_infos={}):
+        self.award_service = award.LcAward()  # 奖励服务
+        self.target_service = lc_target.TargetService(self)  # 目标服务
+        self.td_user_infos = tday_infos
+        self.yd_user_infos = yday_infos
         self.user_td_coins = {}
+        self.dao_account = DaoAccountInfo()
+        self.dao_daily_info = DaoDailyInfo()
+        self.dao_rand_problem = DaoRandProblem()
 
     def run(self, day):
         self.deal_daily_coins()
@@ -60,62 +67,52 @@ class GamePlay(object):
 
     def _update_user_coins(self):
         for u in self.user_td_coins:
-            coins = self.sql_service.search_user_coins(u)
+            coins = self.dao_account.search_user_coins(u)
             if not coins:
                 continue
             coins += self.user_td_coins[u]
-            self.sql_service.update_user_coins(u, coins)
+            self.dao_account.update_user_coins(u, coins)
 
     def deal_daily_coins(self):
         # 23点后根据用户今日信息进行判断
-        for user in self.tday_infos:
-            info = self.tday_infos[user]
-            item = {}
-            for i in range(0, len(self.sql_service.USER_LC_DAILY_INFO_FIELDS)-1):
-                key = self.sql_service.USER_LC_DAILY_INFO_FIELDS[i]
-                item[key] = info[i]
-            self.td_user_infos[user] = item
-        for user in self.yday_infos:
-            info = self.yday_infos[user]
-            item = {}
-            for i in range(0, len(self.sql_service.USER_LC_DAILY_INFO_FIELDS)-1):
-                key = self.sql_service.USER_LC_DAILY_INFO_FIELDS[i]
-                item[key] = info[i]
-            self.yd_user_infos[user] = item
-
         for user in self.td_user_infos:
             self.user_td_coins[user] = self._calculate_user_add_coins(user)
-        items = self.td_user_infos.items()
+
+        items = self.td_user_infos.values()
         items = sorted(
-            items, key=lambda data: data[1]['new_solve'], reverse=True)
+            items, key=lambda data: data.new_solve, reverse=True)
         solve_num_list = []
         except_users = set()
-        for user, item in items:
-            score = item['new_solve']   #用户今日刷题量
-            if score >= item['total_solve']: #今日新加入的，或者近日重新复活的
+        for item in items:
+            user = item.user
+            score = item.new_solve  #用户今日刷题量
+            if score >= item.total_solve: #今日新加入的，或者近日重新复活的
                 except_users.add(user)
                 continue
             if score >= 100 or score <= 0: #除去异常数据
                 continue
             if score not in solve_num_list:
                 solve_num_list.append(score)
-            if len(solve_num_list) >= 3:
+            if len(solve_num_list) >= TOPN:
                 break
         for i in range(0, len(solve_num_list)):
             score = solve_num_list[i]
-            for user, item in items:
+            for item in items:
+                user = item.user
                 if user in except_users:
                     continue
-                if item['new_solve'] < score:
+                if item.new_solve < score:
                     break
-                if item['new_solve'] == score:
-                    self.add_user_coins(user, 3-i)
+                if item.new_solve == score:
+                    self.add_user_coins(user, UPSCORE - i*2)
 
     def _update_user_account_status(self):
         for user in self.td_user_infos:
             td_info = self.td_user_infos[user]
-            if td_info['lazy_days'] >= settings.LazyLevel.LEVEL16:
-                self.sql_service.update_account_status(user, 1)
+            if td_info.rating_score >= 2300 or td_info.total_solve >= 2500:
+                continue
+            if td_info.lazy_days >= settings.LazyLevel.LEVEL16:
+                self.dao_account.update_account_status(user, 1)
 
     def _calculate_user_add_coins(self, user):
         td_info = None
@@ -127,23 +124,26 @@ class GamePlay(object):
         if not td_info:
             return None
         add_n = 0
-        delt_problem_submit = td_info['problem_submit']
-        delt_new_solve = td_info['total_solve']
+        add_score = 0
+        delt_new_solve = td_info.total_solve
         if not yd_info:
-            delt_new_solve = td_info['new_solve']
+            delt_new_solve = td_info.new_solve
+            add_score = 1
         else:
-            delt_new_solve = td_info['total_solve'] - yd_info['total_solve']
-            delt_problem_submit -= yd_info['problem_submit']
-        if delt_new_solve > 0 and delt_new_solve < 100:
-            add_n += 1
-        elif delt_new_solve == 0:
-            add_n -= 1
-        add_n += delt_problem_submit * 3
-        return add_n
+            delt_new_solve = td_info.total_solve - yd_info.total_solve
+            if delt_new_solve > 0 and delt_new_solve < 100:
+                # add_n += 1
+                add_score += td_info.hard_num * 3
+                add_score += td_info.mid_num * 2
+                add_score += td_info.easy_num
+            elif delt_new_solve == 0:
+                # add_n -= 1
+                add_score = 0
+        return add_score
 
     def _deal_award(self):
-        for u in self.tday_infos:
-            td_award = self.award_service.deal_award(self.tday_infos[u])
+        for u in self.td_user_infos:
+            td_award = self.award_service.deal_award(self.td_user_infos[u])
             if not td_award:
                 continue
             if td_award == award.MedalType.Knight:
@@ -158,12 +158,18 @@ class GamePlay(object):
         """抽题指定随机用户完成"""
         pid = random.randint(self.PNUM_START, self.PUNM_END)
         coins = random.randint(3, 5)
-        users = self.sql_service.load_all_email_users()
+        users = self.dao_account.load_all_email_users()
         k1 = random.randint(1, len(users))
         k2 = random.randint(1, len(users))
         user1 = users[k1-1][0]
         email1 = users[k1-1][1]
-        self.sql_service.add_rand_problem_record(user1, pid, coins, 1, td)
+        item = RandProblemRecord()
+        item.user = user1
+        item.lc_number = pid
+        item.coins = coins
+        item.status = 1
+        item.create_time = td
+        self.dao_rand_problem.add_rand_problem_record(item)
         bodystr = "恭喜！！\n你被随机抽中参与今天的幸运答题，leetcode题号为：" + \
             str(pid) + "，完成后可获得：" + str(coins) + \
             "积分奖励！！\n请于今天24点之前完成，否则要扣除1个积分哦！！"
@@ -172,30 +178,37 @@ class GamePlay(object):
             return
         user2 = users[k2-1][0]
         email2 = users[k2-1][1]
-        self.sql_service.add_rand_problem_record(user2, pid, coins, 1, td)
+        item2 = RandProblemRecord()
+        item2.user = user2
+        item2.lc_number = pid
+        item2.coins = coins
+        item2.status = 1
+        item2.create_time = td
+        self.dao_rand_problem.add_rand_problem_record(item2)
         email_service.EmailService.send_email(email2, bodystr)
 
     def check_rand_problem_finish(self, td):
-        infos = self.sql_service.load_rand_problem_info_by_day(td)
+        infos = self.dao_rand_problem.load_rand_problem_info_by_day(td)
         leetcode_service = lc_service.LeetcodeService()
         for data in infos:
-            id = data[0]
-            user = data[1]
-            lc_number = data[2]
-            coins = data[4]
+            id = data.id
+            user = data.user
+            lc_number = data.lc_number
+            coins = data.coins
             status = leetcode_service.check_user_rand_problem_status(
                 user, lc_number, td)
             if status == 2:
                 self.add_user_coins(user, coins)
             else:
                 self.add_user_coins(user, -1)
-            self.sql_service.update_rand_problem_status(id, status)
+            self.dao_rand_problem.update_rand_problem_status(id, status)
 
 
 if __name__ == '__main__':
     leetcode_service = lc_service.LeetcodeService()
     obj = GamePlay()
     td = '2022-11-21'
+    obj.publish_rand_problem(td)
     
     
     

@@ -21,7 +21,7 @@ class MysqlService(object):
     INTERVIEW_PROBLEM_INFO_TABLE = 'interview_problem_info'
     USER_LC_DAILY_INFO_FIELDS = ['user', 'total_solve', 'code_submit',
                                  'problem_submit', 'rating_score', 'continue_days',
-                                 'new_solve', 'lazy_days', 'date_time']
+                                 'new_solve', 'lazy_days', 'total_days', 'date_time']
     ACCOUNT_INFO_FIELDS = ['user', 'git_account',
                            'medal', 'award', 'email', 'date_time', 'coins']
     FEEDBACK_INFO_FIELDS = ['content', 'status', 'answer', 'date_time']
@@ -71,9 +71,10 @@ class MysqlService(object):
         days = int(data[5])
         new_solve = int(data[6])
         lazy_days = int(data[7])
-        sql = presql + "values ('%s',%s, %s, %s, %s, %s, %s, %s, '%s')" % \
+        total_days = int(data[8])
+        sql = presql + "values ('%s',%s, %s, %s, %s, %s, %s, %s, %s, '%s')" % \
             (user, total, code_submit, problem_submit, score,
-                days, new_solve, lazy_days, date)
+                days, new_solve, lazy_days, total_days, date)
         return self._add(sql)
 
     def update_single_user_daily_info(self, date, data):
@@ -81,9 +82,10 @@ class MysqlService(object):
             return False
         sql = "update " + self.USER_LC_DAILY_INFO_TABLE + " set \
             total_solve=%s, code_submit=%s, problem_submit=%s, rating_score=%s, \
-            continue_days=%s, new_solve=%s, lazy_days=%s where user = '%s' and  date_time ='%s'" % (data[1],
-                                                                                                    data[2], data[3], data[4], data[5], data[6], data[7], data[0], date)
+            continue_days=%s, new_solve=%s, lazy_days=%s, total_days=%s where user = '%s' and  date_time ='%s'" % (data[1],
+                                                                                                                   data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[0], date)
         return self._update(sql)
+
     def reset_single_user_lazy_days(self, user):
         if not self._connect_mysql():
             return False
@@ -137,6 +139,20 @@ class MysqlService(object):
             " from " + self.USER_LC_DAILY_INFO_TABLE
         return self._query(sql)
 
+    def count_user_total_days(self, user):
+        if not self._connect_mysql():
+            return False
+        sql = "select count(*) from " + self.USER_LC_DAILY_INFO_TABLE + \
+            " where user = '%s' and new_solve > 0 and date_time < '2023-02-21'" % user
+        return self._query(sql)
+
+    def update_user_total_days(self, user, days):
+        if not self._connect_mysql():
+            return False
+        sql = "update " + self.USER_LC_DAILY_INFO_TABLE + " set total_days = %s " \
+            "where user = '%s'" % (days, user)
+        return self._update(sql)
+
     def update_user_medal(self, user, medal):
         if not self._connect_mysql():
             return False
@@ -149,6 +165,13 @@ class MysqlService(object):
             return False
         sql = "update " + self.ACCOUNT_INFO_TABLE + " set email = '%s' \
             where user = '%s'" % (email, user)
+        return self._update(sql)
+
+    def update_user_token(self, user, token):
+        if not self._connect_mysql():
+            return False
+        sql = "update " + self.ACCOUNT_INFO_TABLE + " set token = '%s' \
+            where user = '%s'" % (token, user)
         return self._update(sql)
 
     def update_user_git_account(self, user, git_account):
@@ -458,7 +481,9 @@ if __name__ == '__main__':
     coins = 4
     status = 1
     date = '2022-11-19'
+    info = ['smilecode-22', 999, 17058, 15, 1911, 7, 4, 0, 1100]
     obj = MysqlService()
     # obj.add_rand_problem_record(user, lc_number, coins, status, date)
-    res = obj.load_feedback_info(1, 10)
+    res = obj.search_user_recent_info(user)
+    obj.update_single_user_daily_info('2023-02-21', info)
     print(res)

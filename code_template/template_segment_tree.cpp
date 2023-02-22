@@ -65,6 +65,37 @@ public:
             insert(tree[cur].r, m + 1, r, val);
         }
     }
+
+    /*
+     功能：向线段树中插入单点
+     参数1：cur一般为1，表示根索引
+     参数2，3：[l, r]表示该节点代表的范围
+     参数4,5：待插入区间的左右端点
+     返回值：无
+     */
+    LL insert(int cur, LL l, LL r, LL i, LL j) {
+        if (tree[cur].val == r-l+1) {
+            return tree[cur].val;
+        }
+        if (i <= l && j >= r) {
+            tree[cur].val = r-l+1;
+            return tree[cur].val;
+        }
+        pushDown(cur);
+        LL m = l + (r - l) / 2;
+        LL sum = 0;
+        int rd = tree[cur].r;
+        int ld = tree[cur].l;
+        if (j <= m) {
+            sum = insert(tree[cur].l, l, m, i, j) + tree[rd].val;
+        } else if (i > m) {
+            sum = insert(tree[cur].r, m + 1, r, i, j) + tree[ld].val;
+        } else {
+            sum = insert(tree[cur].l, l, m, i, m) +
+                insert(tree[cur].r, m + 1, r, m+1, j);
+        }
+        return tree[cur].val = max(tree[cur].val, sum);
+    }
     
     void pushDown(int cur) {
         if (tree[cur].l == INF)

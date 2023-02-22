@@ -11,16 +11,6 @@
 #include <cmath>
 using namespace std;
 
-/*
-    并查集
-    实战题号 leetcode 305 
-    https://leetcode.cn/problems/number-of-islands-ii/
-    介绍：并查集广泛用于集合合并相关问题
-    如何将问题抽象转化为集合合并问题是难点
-    一般的，如果问题由一个大集合能划分为几个小集合，且小集合的问题解决能得到大集合的问题解决
-    则适合用并查集
-*/
-
 class UnionSet {
 public:
     // 用于记录每个节点的父亲节点
@@ -66,3 +56,24 @@ public:
         return count;
     }
 };
+
+/*
+描述: 将图转化为最小生成树
+参数1: n为定点个数
+参数2: 每一个元素为[i, j, cost] 为连通定点i和顶点j所需要的代价
+返回值: 返回最小生成树的代价
+*/
+int genMiniestTree(int n, vector<vector<int>>& edges) {
+    UnionSet ut;
+    sort(edges.begin(), edges.end(), [](const vector<int>& a, vector<int>& b) {
+        return a[2] < b[2];
+    });
+    int ans = 0;
+    for(auto& v : edges) {
+        if (ut.find(v[0]) != ut.find(v[1])) {
+            ut.unionSet(v[0], v[1]);
+            ans += v[2];
+        }
+    }
+    return ans;
+}

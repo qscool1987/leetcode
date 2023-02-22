@@ -5,8 +5,8 @@ import requests
 import settings
 from loghandle import logger
 import mysql_service
+from daily_info_dao import UserDailyInfoRecord
 import sys
-import mysql_service
 import time
 import datetime
 
@@ -54,7 +54,7 @@ class LeetcodeService(object):
         if not score:
             return 0
         return int(score)
-
+    
     def get_user_lc_stat_info(self, user):
         url = 'https://leetcode.cn/graphql/'
         data = {
@@ -69,15 +69,20 @@ class LeetcodeService(object):
             'data']['userProfileUserQuestionProgress']['numAcceptedQuestions']
         if len(data) == 0:
             return None
-        line = [0] * \
-            (len(mysql_service.MysqlService.USER_LC_DAILY_INFO_FIELDS) - 1)
-        line[0] = user
-        problems = 0
         print(data)
+        obj = UserDailyInfoRecord()
+        obj.user = user
+        problems = 0
         for item in data:
             problems += item['count']
-        line[1] = problems
-        return line
+            if item['difficulty'] == 'HARD':
+                obj.hard_num = item['count']
+            elif item['difficulty'] == 'EASY':
+                obj.easy_num = item['count']
+            elif item['difficulty'] == 'MEDIUM':
+                obj.mid_num = item['count']
+        obj.total_solve = problems
+        return obj
 
     def check_user_rand_problem_status(self, user, pid, td):
         data = {

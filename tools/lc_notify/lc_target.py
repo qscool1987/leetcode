@@ -5,13 +5,15 @@
 
 """
 from math import ceil, floor
-import mysql_service
 from loghandle import logger
 import datetime
 from dateutil.parser import parse
 from lc_error import ErrorCode
 import email_service
 from loghandle import logger
+from daily_info_dao import DaoDailyInfo, UserDailyInfoRecord
+from target_info_dao import DaoTargetInfo, TargetRecord
+from account_info_dao import AccountInfoRecord, DaoAccountInfo
 
 
 class TargetType:
@@ -139,15 +141,17 @@ class TargetLevel:
 
 
 class TargetService(object):
-    def __init__(self, sql_service, game_play):
-        self.sql_service = sql_service
+    def __init__(self, game_play):
+        self.daoDailyInfo = DaoDailyInfo()
+        self.daoTarget = DaoTargetInfo()
+        self.daoAccount = DaoAccountInfo()
         self.game_play = game_play
 
     def _deal_challenge_target(self, you, opponent, dead_line):
-        you_info = self.sql_service.search_account(you)
-        opponent_info = self.sql_service.search_account(opponent)
-        you_email = you_info[4]
-        opponent_email = opponent_info[4]
+        you_info = self.daoAccount.search_account(you)
+        opponent_info = self.daoAccount.search_account(opponent)
+        you_email = you_info.email
+        opponent_email = opponent_info.email
         today = str(datetime.date.today())
         you_bodystr = "您已于" + today + "号发起了对 " + opponent + " 的挑战任务，\
             结束时间为" + dead_line + "号。系统将于" + dead_line + "号23点55分计算任务状态，\
@@ -172,7 +176,7 @@ class TargetService(object):
 
     def evaluate_target_level(self, user, target_type, target_val=0, opponent='', dead_line=''):
         # 评估目标的困难程度
-        nowinfo = self.sql_service.search_user_recent_info(user)
+        nowinfo = self.daoDailyInfo.search_user_recent_info(user)
         if not nowinfo:
             return ErrorCode.ACCOUNT_NOT_EXIST, 0
         level = 0
@@ -212,12 +216,11 @@ class TargetService(object):
         return level
 
     def evaluate_problem_solve_target_level(self, nowinfo, target_val, dead_line):
-        if nowinfo[1] >= target_val:  # 目标不合理
+        if nowinfo.total_solve >= target_val:  # 目标不合理
             return ErrorCode.PROBLEM_NUM_OVER, 0
-        diff_val = target_val - nowinfo[1]
+        diff_val = target_val - nowinfo.total_solve
         delt_days = self._delt_days(dead_line)
         avg = diff_val / delt_days
-        print(avg, delt_days)
         delt_days_level = self._cal_delt_days_level(delt_days)
         avg = floor(avg / delt_days_level)
         level = 0
@@ -240,9 +243,9 @@ class TargetService(object):
         return ErrorCode.SUCC, level
 
     def evaluate_code_submit_target_level(self, nowinfo, target_val, dead_line):
-        if nowinfo[2] >= target_val:
+        if nowinfo.code_submit >= target_val:
             return ErrorCode.CODELINE_OVER, 0
-        diff_val = target_val - nowinfo[2]
+        diff_val = target_val - nowinfo.code_submit
         delt_days = self._delt_days(dead_line)
         avg = diff_val / delt_days
         delt_days_level = self._cal_delt_days_level(delt_days)
@@ -267,9 +270,9 @@ class TargetService(object):
         return ErrorCode.SUCC, level
 
     def evaluate_problem_submit_target_level(self, nowinfo, target_val, dead_line):
-        if nowinfo[3] >= target_val:  # 目标不合理
+        if nowinfo.problem_submit >= target_val:  # 目标不合理
             return ErrorCode.PROBLEM_SUBMIT_OVER, 0
-        diff_val = target_val - nowinfo[3]
+        diff_val = target_val - nowinfo.problem_submit
         delt_days = self._delt_days(dead_line)
         avg = 3 * diff_val / delt_days
         delt_days_level = self._cal_delt_days_level(delt_days)
@@ -362,36 +365,36 @@ class TargetService(object):
         间隔分数    gap_score 
         间隔周数    gap_week
         """
-        if nowinfo[4] >= target_val:  # 目标不合理
+        if nowinfo.rating_score >= target_val:  # 目标不合理
             return ErrorCode.RATING_OVER, 0
-        if nowinfo[4] == 0:
+        if nowinfo.rating_score == 0:
             return ErrorCode.NO_RATING_SCORE, 0
-        diff_val = target_val - nowinfo[4]
+        diff_val = target_val - nowinfo.rating_score
         if diff_val < 50:
             return ErrorCode.RATING_GAP_SMALL, 0
         delt_days = self._delt_days(dead_line)
         if delt_days < 30:
             return ErrorCode.DATETIME_GAP_SHORT2, 0
-        nowscore = nowinfo[4]
+        nowscore = nowinfo.rating_score
         pvar = self._cal_rating_param(nowscore, target_val)
         level = self._cal_rating_target_level(diff_val, delt_days, pvar)
         return ErrorCode.SUCC, level
 
     def evaluate_challenge_target_level(self, you, oponent, dead_line):
-        other = self.sql_service.search_user_recent_info(oponent)
+        other = self.daoDailyInfo.search_user_recent_info(oponent)
         if not other:
             return ErrorCode.OPPNENT_NOT_EXIST, 0
-        if you[4] == 0:
+        if you.rating_score == 0:
             return ErrorCode.NO_RATING_SCORE, 0
-        if you[4] >= other[4]:
+        if you.rating_score >= other.rating_score:
             return ErrorCode.PK_RATING_OVER, 0
-        diff_val = other[4] - you[4]
+        diff_val = other.rating_score - you.rating_score
         delt_days = self._delt_days(dead_line)
         if delt_days < 30:
             return ErrorCode.DATETIME_GAP_SHORT2, 0
         pvar = 1
-        nowscore = you[4]
-        target_val = other[4]
+        nowscore = you.rating_score
+        target_val = other.rating_score
         lv = self._cal_rating_level(target_val)
         if lv == 1:
             target_val = target_val + 0.8 * diff_val
@@ -403,24 +406,24 @@ class TargetService(object):
             target_val = target_val + 0.2 * diff_val
         pvar = self._cal_rating_param(nowscore, target_val)
         level = self._cal_rating_target_level(diff_val, delt_days, pvar)
-        self._deal_challenge_target(you[0], other[0], dead_line)
+        self._deal_challenge_target(you.user, other.user, dead_line)
         return ErrorCode.SUCC, level
 
     def deal_all_targets_status(self):
-        target_infos = self.sql_service.load_all_unfinished_target_info()
+        target_infos = self.daoTarget.load_all_unfinished_target_info()
         user_infos = {}
         user_accounts = {}
         for target in target_infos:
-            id = target[0]
-            user = target[1]
-            # if user != 'smilecode-2':  # 调试代码
-            #     continue
-            target_type = target[2]
-            target_value = target[3]
-            opponent = target[4]
-            status = target[5]
-            dead_line = target[7]
-            level = target[8]
+            id = target.id
+            user = target.user
+            if user != 'smilecode-2':  # 调试代码
+                continue
+            target_type = target.target_type
+            target_value = target.target_value
+            opponent = target.opponent
+            status = target.status
+            dead_line = target.dead_line
+            level = target.level
             if target_type == TargetType.Rank:
                 pass
             elif target_type == TargetType.ProblemSolve:
@@ -445,7 +448,7 @@ class TargetService(object):
                     "{} finished target_type {} successful!".format(user, target))
             elif status == TargetStatus.FAIL:
                 logger.info("{} target_type {} failed!".format(user, target))
-            self.sql_service.update_user_target_status(id, status)
+            self.daoTarget.update_user_target_status(id, status)
             if status == TargetStatus.SUCC:
                 self.game_play.add_user_coins(
                     user, TargetLevel.from_level_to_score(level))
@@ -464,20 +467,20 @@ class TargetService(object):
                 if user in user_accounts:
                     user_account = user_accounts[user]
                 else:
-                    user_account = self.sql_service.search_account(user)
+                    user_account = self.daoAccount.search_account(user)
                     user_accounts[user] = user_account
-                email_addr = user_account[4]
+                email_addr = user_account.email
                 if email_addr != '':
                     user_info = None
                     if user in user_infos:
                         user_info = user_infos[user]
                     else:
-                        user_info = self.sql_service.search_user_recent_info(
+                        user_info = self.daoDailyInfo.search_user_recent_info(
                             user)
                         user_infos[user] = user_info
-                    current_problem_solve = user_info[1]
-                    current_rating_score = user_info[4]
-                    current_continue_days = user_info[5]
+                    current_problem_solve = user_info.total_solve
+                    current_rating_score = user_info.rating_score
+                    current_continue_days = user_info.continue_days
                     days = self._delt_days(str(dead_line))  # 剩余天数
                     if target_type == TargetType.Rank:
                         pass
@@ -505,60 +508,60 @@ class TargetService(object):
         pass
 
     def judge_problem_solve_target(self, user, target_value, dead_line):
-        info = self.sql_service.search_user_recent_info(user)
-        if info[-1] >= dead_line:
-            return TargetStatus.FAIL
-        if target_value <= info[1]:
+        info = self.daoDailyInfo.search_user_recent_info(user)
+        if target_value <= info.total_solve:
             return TargetStatus.SUCC
+        if info.date_time >= dead_line:
+            return TargetStatus.FAIL
         return TargetStatus.PROCESSING
 
     def judge_code_submit_target(self, user, target_value, dead_line):
-        info = self.sql_service.search_user_recent_info(user)
-        if info[-1] >= dead_line:
-            return TargetStatus.FAIL
-        if target_value <= info[2]:
+        info = self.daoDailyInfo.search_user_recent_info(user)
+        if target_value <= info.code_submit:
             return TargetStatus.SUCC
+        if info.date_time >= dead_line:
+            return TargetStatus.FAIL
         return TargetStatus.PROCESSING
 
     def judge_problem_submit_target(self, user, target_value, dead_line):
-        info = self.sql_service.search_user_recent_info(user)
-        if info[-1] >= dead_line:
-            return TargetStatus.FAIL
-        if target_value <= info[3]:
+        info = self.daoDailyInfo.search_user_recent_info(user)
+        if target_value <= info.problem_submit:
             return TargetStatus.SUCC
+        if info.date_time >= dead_line:
+            return TargetStatus.FAIL
         return TargetStatus.PROCESSING
 
     def judge_continue_days_target(self, user, target_value, dead_line):
-        info = self.sql_service.search_user_recent_info(user)
-        if info[-1] >= dead_line:  # 如果当前日期大于deadline则失败
-            return TargetStatus.FAIL
-        if target_value <= info[5]:  # 如果目标值比当前值小则成功
+        info = self.daoDailyInfo.search_user_recent_info(user)
+        if target_value <= info.continue_days:  # 如果目标值比当前值小则成功
             return TargetStatus.SUCC
+        if info.date_time >= dead_line:  # 如果当前日期大于deadline则失败
+            return TargetStatus.FAIL
         return TargetStatus.PROCESSING
 
     def judge_rating_target(self, user, target_value, dead_line):
-        info = self.sql_service.search_user_recent_info(user)
-        if info[-1] >= dead_line:
-            return TargetStatus.FAIL
-        if target_value <= info[4]:
+        info = self.daoDailyInfo.search_user_recent_info(user)
+        if target_value <= info.rating_score:
             return TargetStatus.SUCC
+        if info.date_time >= dead_line:
+            return TargetStatus.FAIL
         return TargetStatus.PROCESSING
 
     def judge_challenge_target(self, user, opponent, dead_line):
-        you = self.sql_service.search_user_recent_info(user)
-        other = self.sql_service.search_user_recent_info(
+        you = self.daoDailyInfo.search_user_recent_info(user)
+        other = self.daoDailyInfo.search_user_recent_info(
             opponent)
-        if you[-1] >= dead_line:
+        if you.date_time >= dead_line:
             return TargetStatus.FAIL
-        if you[-1] == dead_line and you[4] > other[4]:
+        if you.date_time == dead_line and you.rating_score > other.rating_score:
             return TargetStatus.SUCC
         return TargetStatus.PROCESSING
 
     def get_user_unfinished_targets(self, user):
-        return self.sql_service.load_single_user_unfinished_target_info(user)
+        return self.daoTarget.load_single_user_unfinished_target_info(user)
 
     def add_user_target(self, info):
-        return self.sql_service.add_user_target(info)
+        return self.daoTarget.add_user_target(info)
 
 
 if __name__ == '__main__':
@@ -568,9 +571,8 @@ if __name__ == '__main__':
     target_val = 970
     opponent = "CNLYJ"
     dead_line = '2022-12-23'
-    sql_service = mysql_service.MysqlService()
     gameplay = game_play.GamePlay()
-    obj = TargetService(sql_service, gameplay)
+    obj = TargetService(gameplay)
     obj.deal_all_targets_status()
     # # obj.judge_challenge_target(user, opponent, dead_line)
     # err, level = obj.evaluate_target_level(
