@@ -15,9 +15,11 @@ def recover_coins():
     coins = json.loads(fp.read())
     for u, td_coins in coins.items():
         his_coins = sql_service.search_user_coins(u)
-        if td_coins > 0:
-            sql_service.update_user_coins(u, his_coins - td_coins)
-        else:
-            sql_service.update_user_coins(u, his_coins + td_coins)
+        # print(u, td_coins)
+        if td_coins > 0: #说明之前加了，现在要减少
+            print(u, td_coins,his_coins, 'xxxx')
+            # sql_service.update_user_coins(u, his_coins + td_coins)
+        # else:
+        #     sql_service.update_user_coins(u, his_coins - td_coins)
             
 recover_coins()

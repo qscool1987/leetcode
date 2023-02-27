@@ -4,20 +4,14 @@ import json
 import requests
 import datetime
 import settings
-from lc_git_stat import (stat_git_info, git_pull)
 from loghandle import logger
-import mysql_service
-import email_service
+from daily_info_dao import DaoDailyInfo, UserDailyInfoRecord
+from account_info_dao import DaoAccountInfo, AccountInfoRecord
 import lc_service
-import award
-import lc_target
 import game_play
 import sys
 
 user_list2 = ['smilecode-2']  # 用于调试
-
-# 数据库服务对象
-sql_service = mysql_service.MysqlService()
 
 # 访问leetcode官方接口的对象
 leetcode_service = lc_service.LeetcodeService()
@@ -29,91 +23,94 @@ def stat_user_info():
     如果有用户触发奖励条件，则给用户发送邮件通知
     """
     # 更新本地git代码库，后面统计代码贡献
-    git_pull()
     td = datetime.date.today()
     yd = td + datetime.timedelta(days=-1)
-    # td = td + datetime.timedelta(days=-1) #debug
     td_infos = {}
     user_score = {}
     git_infos = {}
     td = str(td)
     yd = str(yd)
+    dao_daily_info = DaoDailyInfo()
+    dao_account = DaoAccountInfo()
     # 从数据库加载昨天的统计信息, 账户映射信息, 奖牌信息
-    yd_infos = sql_service.load_all_user_daily_info_by_day(yd)
-    lc_to_git, medal_history, _, _ = sql_service.load_all_account_infos()
+    yd_infos = dao_daily_info.load_all_user_daily_info_by_day(yd)
+    account_infos = dao_account.load_all_account_infos()
 
     user_list = []
-    for u in medal_history:
-        user_list.append(u)
+    for u, item in account_infos.items():
+        if item.status == 0:
+            user_list.append(u)
     for u in user_list:
         # 获取刷题信息
         info = leetcode_service.get_user_lc_stat_info(u)
         if not info:
             continue
-        td_infos[u] = info
+        
         # 获取竞赛分数信息
         score = leetcode_service.get_user_score_info(u)
-        user_score[u] = score
-        # 获取git代码贡献信息
-        if u in lc_to_git:
-            git_info = stat_git_info(td, lc_to_git[u])
-            git_infos[u] = git_info
+        info.rating_score = score
+        td_infos[u] = info
     # 对比
     result = []
     hour = datetime.datetime.now().hour
     for u in user_list:
-        y_l = []
+        y_l = None
         if u in yd_infos:
             y_l = yd_infos[u]
-        t_l = []
+        t_l = None
         if u in td_infos:
             t_l = td_infos[u]
         else:
             continue
-        if u in lc_to_git:
-            ln, lt = git_infos[u]
-            t_l[2] = ln
-            t_l[3] = lt
-        if u in user_score:
-            t_l[4] = user_score[u]
-        if len(y_l) == 0:
-            t_l[6] = t_l[1]  # 今日刷题量 新加的用户为总刷题量
-            t_l[5] = 1  # 连续打卡天数 新加的用户为1
-            t_l[7] = 0  # 懒惰等级 新加的用户初始化为0
+        if not y_l:
+            t_l.new_solve = 0
         else:
-            diff_t = int(t_l[1]) - int(y_l[1])
-            t_l[6] = diff_t
+            diff_t = int(t_l.total_solve) - int(y_l.total_solve)
+            t_l.new_solve = 0
             if diff_t > 0:
-                t_l[5] += int(y_l[5]) + 1
-                t_l[7] = int(y_l[7]) - 2  # 只要今日刷过题，则懒惰等级-2
-                if t_l[7] < 0:  # 最低不低于0
-                    t_l[7] = 0
+                t_l.continue_days = y_l.continue_days + 1
+                t_l.lazy_days = y_l.lazy_days - 2
+                t_l.total_days = y_l.total_days + 1
+                if t_l.lazy_days < 0:  # 最低不低于0
+                    t_l.lazy_days = 0
+                # hard, mid,easy分别刷的题量
+                t_l.hard_num = t_l.hard_num - y_l.hard_num
+                t_l.mid_num = t_l.mid_num - y_l.mid_num
+                t_l.easy_num = t_l.easy_num - y_l.easy_num
+                t_l.new_solve = t_l.hard_num * 3 + t_l.mid_num * 2 + t_l.easy_num
             else:
                 # 如果今天晚上23点后统计还是没有刷题，则懒懒等级+1
                 if hour >= 23:
-                    t_l[5] = 0
-                    t_l[7] = int(y_l[7]) + 1
+                    t_l.continue_days = 0
+                    t_l.lazy_days = y_l.lazy_days + 1
+                    t_l.total_days = y_l.total_days
+                    t_l.hard_num = 0
+                    t_l.mid_num = 0
+                    t_l.easy_num = 0
                 else:
-                    t_l[5] = int(y_l[5])
-                    t_l[7] = int(y_l[7])
-                if t_l[7] >= settings.LazyLevel.LEVEL16:
-                    t_l[7] = settings.LazyLevel.LEVEL16
+                    t_l.continue_days = y_l.continue_days
+                    t_l.lazy_days = y_l.lazy_days
+                    t_l.total_days = y_l.total_days
+                    t_l.hard_num = 0
+                    t_l.mid_num = 0
+                    t_l.easy_num = 0
+                if t_l.lazy_days > settings.LazyLevel.LEVEL16:
+                    t_l.lazy_days = settings.LazyLevel.LEVEL16
         result.append(t_l)
         td_infos[u] = t_l
     logger.info(result)
-
     # 将今日统计信息写入数据库
     for item in result:
-        user = item[0]
-        info = sql_service.serach_single_user_daily_info(user, td)
+        user = item.user
+        info = dao_daily_info.serach_single_user_daily_info(user, td)
         if not info:
-            sql_service.add_single_user_daily_info(td, item)
+            item.date_time = td
+            dao_daily_info.add_single_user_daily_info(item)
         else:
-            sql_service.update_single_user_daily_info(td, item)
+            dao_daily_info.update_single_user_daily_info(td, item)
     logger.info("add into mysql finished")
     # 游戏逻辑
-    award_service = award.LcAward()
-    gameplay = game_play.GamePlay(award_service, td_infos, yd_infos)
+    gameplay = game_play.GamePlay(td_infos, yd_infos)
     if hour == 6:
         gameplay.publish_rand_problem(td)
     if hour >= 23:

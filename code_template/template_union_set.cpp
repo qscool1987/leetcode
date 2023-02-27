@@ -49,7 +49,6 @@ public:
         int py = find(y);
         if (px == py) return;
         parent[py] = px;
-        find(y);  // 将路径上所有的节点的父亲节点设置为px
         --count; // 合并集合，集合数量减1
     }
 
