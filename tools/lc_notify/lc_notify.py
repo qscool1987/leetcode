@@ -45,7 +45,6 @@ def stat_user_info():
         info = leetcode_service.get_user_lc_stat_info(u)
         if not info:
             continue
-        
         # 获取竞赛分数信息
         score = leetcode_service.get_user_score_info(u)
         info.rating_score = score
@@ -74,9 +73,9 @@ def stat_user_info():
                 if t_l.lazy_days < 0:  # 最低不低于0
                     t_l.lazy_days = 0
                 # hard, mid,easy分别刷的题量
-                t_l.hard_num = t_l.hard_num - y_l.hard_num
-                t_l.mid_num = t_l.mid_num - y_l.mid_num
-                t_l.easy_num = t_l.easy_num - y_l.easy_num
+                t_l.hard_num = t_l.hard_total - y_l.hard_total
+                t_l.mid_num = t_l.mid_total - y_l.mid_total
+                t_l.easy_num = t_l.easy_total - y_l.easy_total
                 t_l.new_solve = t_l.hard_num * 3 + t_l.mid_num * 2 + t_l.easy_num
             else:
                 # 如果今天晚上23点后统计还是没有刷题，则懒懒等级+1
@@ -96,12 +95,12 @@ def stat_user_info():
                     t_l.easy_num = 0
                 if t_l.lazy_days > settings.LazyLevel.LEVEL16:
                     t_l.lazy_days = settings.LazyLevel.LEVEL16
-        result.append(t_l)
+        result.append(t_l.as_dict())
         td_infos[u] = t_l
     logger.info(result)
+    # print(json.dumps(result))
     # 将今日统计信息写入数据库
-    for item in result:
-        user = item.user
+    for user, item in td_infos.items():
         info = dao_daily_info.serach_single_user_daily_info(user, td)
         if not info:
             item.date_time = td

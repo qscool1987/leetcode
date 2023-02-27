@@ -54,7 +54,7 @@ class LeetcodeService(object):
         if not score:
             return 0
         return int(score)
-    
+
     def get_user_lc_stat_info(self, user):
         url = 'https://leetcode.cn/graphql/'
         data = {
@@ -76,11 +76,11 @@ class LeetcodeService(object):
         for item in data:
             problems += item['count']
             if item['difficulty'] == 'HARD':
-                obj.hard_num = item['count']
+                obj.hard_total = item['count']
             elif item['difficulty'] == 'EASY':
-                obj.easy_num = item['count']
+                obj.easy_total = item['count']
             elif item['difficulty'] == 'MEDIUM':
-                obj.mid_num = item['count']
+                obj.mid_total = item['count']
         obj.total_solve = problems
         return obj
 

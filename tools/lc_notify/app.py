@@ -2,17 +2,19 @@ from flask import Flask
 from flask import request
 import datetime
 import json
+import sys
+import settings
+sys.path.append('./dao')
 
-from target_info_dao import TargetRecord, DaoTargetInfo
-from rand_problem_dao import RandProblemRecord, DaoRandProblem
-from interview_problem_dao import InterviewProblemRecord, DaoInterviewProblem
-from feedback_dao import FeedbackRecord, DaoFeedback
-from daily_info_dao import DaoDailyInfo, UserDailyInfoRecord
-from account_info_dao import AccountInfoRecord, DaoAccountInfo
+from dao.target_info_dao import TargetRecord, DaoTargetInfo
+from dao.rand_problem_dao import RandProblemRecord, DaoRandProblem
+from dao.interview_problem_dao import InterviewProblemRecord, DaoInterviewProblem
+from dao.feedback_dao import FeedbackRecord, DaoFeedback
+from dao.daily_info_dao import DaoDailyInfo, UserDailyInfoRecord
+from dao.account_info_dao import AccountInfoRecord, DaoAccountInfo
 
 import lc_service
 from loghandle import logger
-import settings
 from lc_target import (TargetType, TargetStatus, TargetService, TargetLevel)
 from lc_error import ErrorCode
 import game_play
