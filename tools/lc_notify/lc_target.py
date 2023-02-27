@@ -5,6 +5,7 @@
 
 """
 from math import ceil, floor
+import settings
 from loghandle import logger
 import datetime
 from dateutil.parser import parse

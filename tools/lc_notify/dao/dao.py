@@ -1,9 +1,12 @@
 """数据库交互接口"""
 import pymysql
-from loghandle import logger
-import datetime
-import settings
+import os
 import sys
+current = os.path.dirname(os.path.realpath(__file__))
+parent = os.path.dirname(current)
+sys.path.append(parent)
+from loghandle import logger
+
 
 class Dao(object):
     port = 3306

@@ -85,15 +85,15 @@ class GamePlay(object):
         except_users = set()
         for item in items:
             user = item.user
-            score = item.new_solve  #用户今日刷题量
-            if score >= item.total_solve: #今日新加入的，或者近日重新复活的
+            score = item.new_solve  # 用户今日刷题量
+            if score >= item.total_solve:  # 今日新加入的，或者近日重新复活的
                 except_users.add(user)
                 continue
-            if score >= 100 or score <= 0: #除去异常数据
+            if score >= 100 or score <= 0:  # 除去异常数据
                 continue
             if score not in solve_num_list:
                 solve_num_list.append(score)
-            if len(solve_num_list) >= TOPN:
+            if len(solve_num_list) >= self.TOPN:
                 break
         for i in range(0, len(solve_num_list)):
             score = solve_num_list[i]
@@ -104,7 +104,7 @@ class GamePlay(object):
                 if item.new_solve < score:
                     break
                 if item.new_solve == score:
-                    self.add_user_coins(user, UPSCORE - i*2)
+                    self.add_user_coins(user, self.UPSCORE - i*2)
 
     def _update_user_account_status(self):
         for user in self.td_user_infos:
@@ -126,12 +126,12 @@ class GamePlay(object):
         add_n = 0
         add_score = 0
         delt_new_solve = td_info.total_solve
-        if not yd_info:
+        if not yd_info:  # 当天新加入的玩家送1分,因为没有历史数据
             delt_new_solve = td_info.new_solve
             add_score = 1
-        else:
+        else:  # 否则按题目难度统计得分
             delt_new_solve = td_info.total_solve - yd_info.total_solve
-            if delt_new_solve > 0 and delt_new_solve < 100:
+            if delt_new_solve > 0 and delt_new_solve < 100:  # 异常情况 排出
                 # add_n += 1
                 add_score += td_info.hard_num * 3
                 add_score += td_info.mid_num * 2
@@ -209,6 +209,3 @@ if __name__ == '__main__':
     obj = GamePlay()
     td = '2022-11-21'
     obj.publish_rand_problem(td)
-    
-    
-    

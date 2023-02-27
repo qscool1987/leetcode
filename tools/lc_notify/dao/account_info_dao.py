@@ -1,8 +1,8 @@
 """sql object for each table"""
-import settings
-import datetime
-from dao import Dao
-from loghandle import logger
+import sys
+sys.path.append('..')
+from dao.dao import Dao
+
 
 class AccountInfoRecord:
     def __init__(self):

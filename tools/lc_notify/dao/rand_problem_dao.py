@@ -1,8 +1,8 @@
 """sql object for each table"""
-import settings
-import datetime
-from dao import Dao
-from loghandle import logger
+from dao.dao import Dao
+import sys
+sys.path.append('..')
+
 
 class RandProblemRecord:
     def __init__(self):
@@ -12,12 +12,12 @@ class RandProblemRecord:
         self.coins = 0
         self.status = 1
         self.create_time = ''
-        
+
     def as_dict(self):
         return {
             'id': self.id,
             'user': self.user,
-            'lc_number' : self.lc_number,
+            'lc_number': self.lc_number,
             'coins': self.coins,
             'create_time': str(self.create_time),
             'status': self.status,
@@ -28,10 +28,10 @@ class DaoRandProblem(Dao):
     RAND_PROBLEM_INFO_TABLE = 'rand_problem_info'
     RAND_PROBLEM_INFO_FIELDS = [
         'user', 'lc_number', 'status', 'coins', 'create_time']
-    
+
     def __init__(self):
         pass
-    
+
     def add_rand_problem_record(self, item):
         if not self._connect_mysql():
             return False
@@ -47,7 +47,7 @@ class DaoRandProblem(Dao):
             " where create_time = '%s'" % date
         datas = self._query(sql)
         if not datas:
-            return None
+            return []
         resp = []
         for data in datas:
             item = RandProblemRecord()
@@ -86,4 +86,3 @@ class DaoRandProblem(Dao):
         sql = "update " + self.RAND_PROBLEM_INFO_TABLE + \
             " set status = %s where id = %s" % (status, id)
         return self._update(sql)
-    

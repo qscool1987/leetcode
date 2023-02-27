@@ -1,8 +1,8 @@
 """sql object for each table"""
-import settings
-import datetime
-from dao import Dao
-from loghandle import logger
+import sys
+sys.path.append('..')
+from dao.dao import Dao
+
 
 class FeedbackRecord:
     def __init__(self):
@@ -70,3 +70,7 @@ class DaoFeedback(Dao):
             resp.append(item)
         return resp
     
+if __name__ == '__main__':
+    obj = DaoFeedback()
+    res = obj.load_feedback_info(0, 100)
+    print(res)

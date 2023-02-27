@@ -1,8 +1,8 @@
 """sql object for each table"""
-import settings
-import datetime
-from dao import Dao
-from loghandle import logger
+from dao.dao import Dao
+import sys
+sys.path.append('..')
+
 
 class UserDailyInfoRecord:
     def __init__(self):
@@ -19,10 +19,13 @@ class UserDailyInfoRecord:
         self.hard_num = 0
         self.mid_num = 0
         self.easy_num = 0
-        
+        self.hard_total = 0
+        self.mid_total = 0
+        self.easy_total = 0
+
     def as_dict(self):
         return {
-            'user' : self.user,
+            'user': self.user,
             'total_solve': self.total_solve,
             'code_submit': self.code_submit,
             'problem_submit': self.problem_submit,
@@ -32,29 +35,32 @@ class UserDailyInfoRecord:
             'lazy_days': self.lazy_days,
             'total_days': self.total_days,
             'date_time': str(self.date_time),
-            'hard_num' : self.hard_num,
-            'mid_num' : self.mid_num,
-            'easy_num': self.easy_num
+            'hard_num': self.hard_num,
+            'mid_num': self.mid_num,
+            'easy_num': self.easy_num,
+            'hard_total': self.hard_total,
+            'mid_total': self.mid_total,
+            'easy_total': self.easy_total
         }
 
 
 class DaoDailyInfo(Dao):
     FIELDS = ['user', 'total_solve', 'code_submit',
               'problem_submit', 'rating_score', 'continue_days',
-              'new_solve', 'lazy_days', 'total_days','hard_num',
-              'mid_num', 'easy_num','date_time']
+              'new_solve', 'lazy_days', 'total_days', 'hard_num',
+              'mid_num', 'easy_num', 'hard_total', 'mid_total', 'easy_total', 'date_time']
     TABLE = 'user_lc_daily_info'
-    
+
     def __init__(self):
         pass
-    
+
     def load_all_user_daily_info_by_day(self, date):
         if not self._connect_mysql():
             return False
         sql = "select " + ",".join(self.FIELDS) + \
             " from " + self.TABLE + " where date_time = '%s'" % date
         datas = self._query(sql)
-        
+
         if not datas:
             return None
         resp = {}
@@ -72,10 +78,13 @@ class DaoDailyInfo(Dao):
             item.hard_num = data[9]
             item.mid_num = data[10]
             item.easy_num = data[11]
-            item.date_time = data[12]
+            item.hard_total = data[12]
+            item.mid_total = data[13]
+            item.easy_total = data[14]
+            item.date_time = data[15]
             resp[item.user] = item
         return resp
-    
+
     def search_user_recent_info(self, user):
         if not self._connect_mysql():
             return False
@@ -100,10 +109,13 @@ class DaoDailyInfo(Dao):
             item.hard_num = data[9]
             item.mid_num = data[10]
             item.easy_num = data[11]
-            item.date_time = data[12]
+            item.hard_total = data[12]
+            item.mid_total = data[13]
+            item.easy_total = data[14]
+            item.date_time = data[15]
             return item
         return None
-    
+
     def serach_single_user_daily_info(self, user, date):
         if not self._connect_mysql():
             return False
@@ -128,57 +140,59 @@ class DaoDailyInfo(Dao):
             item.hard_num = data[9]
             item.mid_num = data[10]
             item.easy_num = data[11]
-            item.date_time = data[12]
+            item.hard_total = data[12]
+            item.mid_total = data[13]
+            item.easy_total = data[14]
+            item.date_time = data[15]
             return item
         return None
-    
+
     def reset_single_user_lazy_days(self, user):
         if not self._connect_mysql():
             return False
         sql = "update " + self.TABLE + " set \
             lazy_days=0 where user = '%s'" % user
         return self._update(sql)
-    
+
     def update_single_user_daily_info(self, date, item):
         if not self._connect_mysql():
             return False
         sql = "update " + self.TABLE + " set \
             total_solve=%s, code_submit=%s, problem_submit=%s, rating_score=%s, \
-            continue_days=%s, new_solve=%s, lazy_days=%s, total_days=%s, hard_num=%s, mid_num=%s, easy_num=%s where user = '%s' and \
-            date_time ='%s'" % (item.total_solve,item.code_submit, item.problem_submit, \
-                item.rating_score, item.continue_days, item.new_solve, item.lazy_days, item.total_days, \
-                item.hard_num, item.mid_num, item.easy_num, item.user, date)
+            continue_days=%s, new_solve=%s, lazy_days=%s, total_days=%s, hard_num=%s, mid_num=%s, easy_num=%s, hard_total=%s, mid_total=%s, easy_total=%s where user = '%s' and \
+            date_time ='%s'" % (item.total_solve, item.code_submit, item.problem_submit,
+                                item.rating_score, item.continue_days, item.new_solve, item.lazy_days, item.total_days,
+                                item.hard_num, item.mid_num, item.easy_num, item.hard_total, item.mid_total, item.easy_total, item.user, date)
         return self._update(sql)
-    
+
     def add_single_user_daily_info(self, item: UserDailyInfoRecord):
         if not self._connect_mysql():
             return False
         presql = "insert into " + self.TABLE
         presql += " (" + ",".join(self.FIELDS) + ")"
-        sql = presql + "values ('%s',%s, %s, %s, %s, %s, %s, %s, %s,%s,%s,%s,'%s')" % \
+        sql = presql + "values ('%s',%s, %s, %s, %s, %s, %s, %s, %s,%s,%s,%s,%s,%s,%s,'%s')" % \
             (item.user, item.total_solve, item.code_submit, item.problem_submit, item.rating_score,
-                item.continue_days, item.new_solve, item.lazy_days,item.total_days, item.hard_num, item.mid_num,item.easy_num, item.date_time)
+                item.continue_days, item.new_solve, item.lazy_days, item.total_days, item.hard_num, item.mid_num, item.easy_num, item.hard_total, item.mid_total, item.easy_total, item.date_time)
         return self._add(sql)
-    
+
     def count_user_total_days(self, user):
         if not self._connect_mysql():
             return False
         sql = "select count(*) from " + self.USER_LC_DAILY_INFO_TABLE + \
             " where user = '%s' and new_solve > 0 and date_time < '2023-02-21'" % user
-        data =  self._query(sql)
+        data = self._query(sql)
         return data[0][0]
-    
+
     def update_user_total_days(self, user, days):
         if not self._connect_mysql():
             return False
         sql = "update " + self.USER_LC_DAILY_INFO_TABLE + " set total_days = %s " \
             "where user = '%s'" % (days, user)
         return self._update(sql)
-    
+
     def update_user_problem_number(self, user, num, date_time):
         if not self._connect_mysql():
             return False
         sql = "update user_lc_daily_info set total_solve=%s where user='%s' \
                and date_time='%s'" % (num, user, date_time)
         return self._update(sql)
-    
