@@ -51,12 +51,15 @@ def get_all_user_daily_info():
             else:
                 obj['lazy_days'] = settings.LazyLevel.from_level_to_str(lazydays)
             info.append(obj)
+        # 按今日刷题量进行排序
+        info = sorted(info, key=lambda item: int(item['coins']), reverse=True)
+        # logger.info(info)
+        return json.dumps(info)
     except Exception as ex:
         logger.warning(ex)
-    # 按今日刷题量进行排序
-    info = sorted(info, key=lambda item: int(item['coins']), reverse=True)
-    # logger.info(info)
-    return json.dumps(info)
+        ret[0] = ErrorCode.MYSQL_SERVICE_ERR
+        ret[1] = ErrorCode.error_message(ret[0])
+        return json.dumps(ret)
 
 
 @app.route('/submit_account_info')
@@ -99,9 +102,12 @@ def submit_account_info():
         item.user = lc_account
         item.git_account = git_account if git_account else ''
         item.email = email if email else ''
-        item.medal = medal if medal else ''
+        item.medal = medal if medal else 0
         item.date_time = datetime.date.today()
-        daoAccount.add_account_info(item)
+        if not daoAccount.add_account_info(item):
+            ret[0] = ErrorCode.MYSQL_SERVICE_ERR
+            ret[1] = ErrorCode.error_message(ret[0])
+            return json.dumps(ret)
         
         score = leetcode_service.get_user_score_info(lc_account)
         userDailyInfo.rating_score = score
@@ -109,21 +115,28 @@ def submit_account_info():
         userDailyInfo.new_solve = 0
         userDailyInfo.total_days = 1
         userDailyInfo.date_time = datetime.date.today()
-        daoDailyInfo.add_single_user_daily_info(userDailyInfo)
+        if not daoDailyInfo.add_single_user_daily_info(userDailyInfo):
+            ret[0] = ErrorCode.MYSQL_SERVICE_ERR
+            ret[1] = ErrorCode.error_message(ret[0])
+            return json.dumps(ret)
     else:
         u_email = userinfo.email
         u_git = userinfo.git_account
+        res = True
         if lc_account != '' and email == '' and git_account == '':
             ret[0] = ErrorCode.ACCOUNT_EXIST
             ret[1] = ErrorCode.error_message(ret[0])
             return json.dumps(ret)
         if u_email == '' and email != '':
             logger.info(lc_account + " update email: " + email)
-            daoAccount.update_user_email(lc_account, email)
+            res = daoAccount.update_user_email(lc_account, email)
         if u_git == '' and git_account != '':
             logger.info(lc_account + " update git_account: " + git_account)
-            daoAccount.update_user_git_account(lc_account, git_account)
-
+            res = daoAccount.update_user_git_account(lc_account, git_account)
+        if not res:
+            ret[0] = ErrorCode.MYSQL_SERVICE_ERR
+            ret[1] = ErrorCode.error_message(ret[0])
+            return json.dumps(ret)
     return json.dumps(ret)
 
 

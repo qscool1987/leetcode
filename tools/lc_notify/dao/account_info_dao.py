@@ -13,7 +13,7 @@ class AccountInfoRecord:
         self.email = ''
         self.coins = 0
         self.status = 0
-        self.token = 0
+        self.token = ''
         self.date_time = ''
         
     def as_dict(self):

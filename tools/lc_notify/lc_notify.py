@@ -8,6 +8,7 @@ from loghandle import logger
 from daily_info_dao import DaoDailyInfo, UserDailyInfoRecord
 from account_info_dao import DaoAccountInfo, AccountInfoRecord
 import lc_service
+from concurrent.futures import as_completed, ThreadPoolExecutor
 import game_play
 import sys
 
@@ -16,6 +17,18 @@ user_list2 = ['smilecode-2']  # 用于调试
 # 访问leetcode官方接口的对象
 leetcode_service = lc_service.LeetcodeService()
 
+def task(user_list):
+    resp = {}
+    for u in user_list:
+        info = leetcode_service.get_user_lc_stat_info(u)
+        if not info:
+            continue
+        # 获取竞赛分数信息
+        score = leetcode_service.get_user_score_info(u)
+        info.rating_score = score
+        resp[u] = info
+    return resp
+        
 
 def stat_user_info():
     """
@@ -40,15 +53,19 @@ def stat_user_info():
     for u, item in account_infos.items():
         if item.status == 0:
             user_list.append(u)
-    for u in user_list:
+    pool = ThreadPoolExecutor(max_workers=4)
+    k = 0
+    LIMIT = 20
+    futures = []
+    while k < len(user_list):
         # 获取刷题信息
-        info = leetcode_service.get_user_lc_stat_info(u)
-        if not info:
+        future = pool.submit(task, user_list[k : k + LIMIT])
+        futures.append(future)
+        k += LIMIT
+    for future in as_completed(futures):
+        if future.exception():
             continue
-        # 获取竞赛分数信息
-        score = leetcode_service.get_user_score_info(u)
-        info.rating_score = score
-        td_infos[u] = info
+        td_infos.update(future.result())
     # 对比
     result = []
     hour = datetime.datetime.now().hour
