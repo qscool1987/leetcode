@@ -23,10 +23,12 @@ cd lc_notify/ && python app.py
 ## 安装nginx
 yum install nginx 
 
-将 conf/nginx.conf 替换 /etc/nginx/nginx.conf
+将 conf/nginx.conf 替换 /etc/nginx/nginx.conf, 注意更改配置中的ip:port
 
 ## 部署前端
 web/* 目录为前端项目目录, 将其部署到/usr/share/nginx/html/leetcode下
+
+注意：前端脚本中访问后段的ip:port 同样要更改，如果不部署前端则忽略
 
 mv web/* /usr/share/nginx/html/leetcode
 
