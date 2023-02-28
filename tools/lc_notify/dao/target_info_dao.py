@@ -114,7 +114,7 @@ class DaoTargetInfo(Dao):
             " order by create_date desc limit %s, %s" % (pn, rn)
         datas = self._query(sql)
         if not datas:
-            return None
+            return []
         resp = []
         for data in datas:
             item = TargetRecord()
