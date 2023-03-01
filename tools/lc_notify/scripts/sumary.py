@@ -1,9 +1,10 @@
 import os
 import sys
 import datetime
-current = os.path.dirname(os.path.realpath(__file__))
-parent = os.path.dirname(current)
-sys.path.append(parent)
+sys.path.append('..')
+sys.path.append('../dao')
+from daily_info_dao import DaoDailyInfo
+from account_info_dao import DaoAccountInfo
 
 class Account:
     def __init__(self):
@@ -42,42 +43,38 @@ class Record:
 """
 
 def stat_user_info():
-    import mysql_service
-    sql_service = mysql_service.MysqlService()
-    infos = sql_service.load_all_user_daily_infos()
-    accounts = sql_service.load_all_accounts()
+    dao_account = DaoAccountInfo()
+    dao_daily = DaoDailyInfo()
+    
+    infos = dao_daily.load_all_user_daily_infos()
+    accounts = dao_account.load_all_accounts()
     user_d_infos = {}
     for info in infos:
-        u = info[0]
+        u = info.user
         if u not in user_d_infos:
             user_d_infos[u] = []
         user_d_infos[u].append(info)
     for u in user_d_infos:
         infos = user_d_infos[u]
-        user_d_infos[u] = sorted(infos, key=lambda data: data[8])
-    user_acc_infos = {}
-    for info in accounts:
-        u = info[0]
-        user_acc_infos[u] = info
+        user_d_infos[u] = sorted(infos, key=lambda data: data.date_time)
 
+    # print(user_d_infos)
     ac_infos = []
     for u in user_d_infos:
         infos = user_d_infos[u]
-        dt = infos[-1][8] - infos[0][8]
+        dt = infos[-1].date_time - infos[0].date_time
         dt = dt.days + 1
         if dt <= 0:
             continue
         # print(dt)
-        acc = 0
-        pdt = infos[-1][1] - infos[0][1]
-        sdt = infos[-1][4] - infos[0][4]
-        account = user_acc_infos.get(u)
+        acc = infos[-1].total_days
+        pdt = infos[-1].total_solve - infos[0].total_solve
+        sdt = infos[-1].rating_score - infos[0].rating_score
+        account = accounts.get(u)
         if not account:
             continue
-        jdt = account[6]
-        for info in infos:
-            if info[6] > 0:
-                acc += 1
+        jdt = account.coins
+        
         item = {
             "user": u,
             "days": dt,
@@ -87,10 +84,10 @@ def stat_user_info():
             "jdt": jdt,
             "cql": acc / dt,
             "avgp": pdt / dt,
-            "s_problem":  infos[0][1],
-            "e_problem":  infos[-1][1],
-            "s_score": infos[0][4],
-            "e_score": infos[-1][4],
+            "s_problem":  infos[0].total_solve,
+            "e_problem":  infos[-1].total_solve,
+            "s_score": infos[0].rating_score,
+            "e_score": infos[-1].rating_score,
         }
         ac_infos.append(item)
     # 1. 累积打卡天数

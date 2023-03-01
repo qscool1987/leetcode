@@ -89,7 +89,7 @@ class GamePlay(object):
             if score >= item.total_solve:  # 今日新加入的，或者近日重新复活的
                 except_users.add(user)
                 continue
-            if score >= 100 or score <= 0:  # 除去异常数据
+            if score >= 60 or score <= 0:  # 除去异常数据
                 continue
             if score not in solve_num_list:
                 solve_num_list.append(score)

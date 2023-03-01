@@ -1,20 +1,19 @@
 import os
 import sys
-current = os.path.dirname(os.path.realpath(__file__))
-parent = os.path.dirname(current)
-sys.path.append(parent)
+sys.path.append('..')
+sys.path.append('../dao')
+from dao.interview_problem_dao import DaoInterviewProblem
 
+dao_interview = DaoInterviewProblem()
 
 def add_interview_problem(infos):
-    import mysql_service
-    sql_service = mysql_service.MysqlService()
     for info in infos:
         content = info[0]
         answer = info[1]
         pt = info[2]
         company = info[3]
         jd = info[4]
-        sql_service.add_interview_problem(content, answer, pt, company, jd)
+        dao_interview.add_interview_problem(content, answer, pt, company, jd)
 
 infos = [
     ["判断一个字符串是否为一个有效的ipv4", '', "算法编程", "百度，蘑菇车联",''],
