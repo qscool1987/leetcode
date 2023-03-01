@@ -4,7 +4,6 @@ import json
 import requests
 import settings
 from loghandle import logger
-import mysql_service
 from daily_info_dao import UserDailyInfoRecord
 import sys
 import time

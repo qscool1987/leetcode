@@ -417,8 +417,6 @@ class TargetService(object):
         for target in target_infos:
             id = target.id
             user = target.user
-            if user != 'smilecode-2':  # 调试代码
-                continue
             target_type = target.target_type
             target_value = target.target_value
             opponent = target.opponent
@@ -552,10 +550,10 @@ class TargetService(object):
         you = self.daoDailyInfo.search_user_recent_info(user)
         other = self.daoDailyInfo.search_user_recent_info(
             opponent)
-        if you.date_time >= dead_line:
-            return TargetStatus.FAIL
         if you.date_time == dead_line and you.rating_score > other.rating_score:
             return TargetStatus.SUCC
+        if you.date_time > dead_line:
+            return TargetStatus.FAIL
         return TargetStatus.PROCESSING
 
     def get_user_unfinished_targets(self, user):
@@ -563,6 +561,65 @@ class TargetService(object):
 
     def add_user_target(self, info):
         return self.daoTarget.add_user_target(info)
+    
+    def deal_all_targets_status_before_day(self, day):
+        target_infos = self.daoTarget.get_all_targets_befor_day(day)
+        user_coins = {}
+        for target in target_infos:
+            id = target.id
+            user = target.user
+            # if user != 'smilecode-2':  # 调试代码
+            #     continue
+            target_type = target.target_type
+            target_value = target.target_value
+            opponent = target.opponent
+            status = target.status
+            dead_line = target.dead_line
+            level = target.level
+            if user not in user_coins:
+                user_coins[user] = 0
+            if opponent != '' and opponent not in user_coins:
+                user_coins[opponent] = 0
+            if target_type == TargetType.Rank:
+                pass
+            elif target_type == TargetType.ProblemSolve:
+                status = self.judge_problem_solve_target(
+                    user, target_value, dead_line)
+            elif target_type == TargetType.CodeSubmit:
+                status = self.judge_code_submit_target(
+                    user, target_value, dead_line)
+            elif target_type == TargetType.ProblemSubmit:
+                status = self.judge_problem_submit_target(
+                    user, target_value, dead_line)
+            elif target_type == TargetType.ContinueDays:
+                status = self.judge_continue_days_target(
+                    user, target_value, dead_line)
+            elif target_type == TargetType.Rating:
+                status = self.judge_rating_target(
+                    user, target_value, dead_line)
+            elif target_type == TargetType.Challenge:
+                status = self.judge_challenge_target(user, opponent, dead_line)
+            if status == TargetStatus.SUCC:
+                logger.info(
+                    "{} finished target_type {} successful!".format(user, target))
+            elif status == TargetStatus.FAIL:
+                logger.info("{} target_type {} failed!".format(user, target))
+            self.daoTarget.update_user_target_status(id, status)
+            
+            if status == TargetStatus.SUCC:
+                user_coins[user] = TargetLevel.from_level_to_score(level)
+                if target_type == TargetType.Challenge:
+                    user_coins[opponent] =  floor(-TargetLevel.from_level_to_score(level) / 2)
+            elif status == TargetStatus.FAIL:
+                user_coins[user] = floor(-TargetLevel.from_level_to_score(level) / 2)
+                if target_type == TargetType.Challenge:
+                    user_coins[opponent] = TargetLevel.from_level_to_score(level)
+        for user in user_coins:
+            his_coins = self.daoAccount.search_user_coins(user)
+            if not his_coins:
+                continue
+            his_coins += user_coins[user]
+            self.daoAccount.update_user_coins(user, his_coins)
 
 
 if __name__ == '__main__':
@@ -571,36 +628,8 @@ if __name__ == '__main__':
     target_type = 2
     target_val = 970
     opponent = "CNLYJ"
-    dead_line = '2022-12-23'
+    dead_line = '2023-02-28'
     gameplay = game_play.GamePlay()
     obj = TargetService(gameplay)
-    obj.deal_all_targets_status()
-    # # obj.judge_challenge_target(user, opponent, dead_line)
-    # err, level = obj.evaluate_target_level(
-    #     user, target_type, target_val=target_val, dead_line=dead_line)
-    # print(err, level)
-    # obj.deal_all_targets_status()
-    # target_infos = sql_service.load_all_unfinished_target_info2()
-    # for target in target_infos:
-    #     id = target[0]
-    #     user = target[1]
-    #     target_type = target[2]
-    #     target_value = target[3]
-    #     opponent = target[4]
-    #     status = target[5]
-    #     dead_line = str(target[7])
-    #     level = target[8]
-    #     if target_type != TargetType.Challenge:
-    #         errcode, level = obj.evaluate_target_level(
-    #             user, target_type, target_val=target_value, dead_line=dead_line)
-    #     else:
-    #         errcode, level = obj.evaluate_target_level(
-    #             user, target_type, target_val=target_value, opponent=opponent, dead_line=dead_line)
-    #     print(errcode, level)
-    #     if errcode != 0:
-    #         sql_service.update_user_target_level(id, 1)
-    #     else:
-    #         sql_service.update_user_target_level(id, level)
-    # errcode, level = obj.evaluate_target_level(
-    #     user, target_type, target_val, opponent=opponent, dead_line=dead_line)
-    # print(errcode, level)
+    obj.deal_all_targets_status_before_day(dead_line)
+    

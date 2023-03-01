@@ -1,28 +1,25 @@
 import os
 import sys
 import datetime
-current = os.path.dirname(os.path.realpath(__file__))
-parent = os.path.dirname(current)
-sys.path.append(parent)
+sys.path.append('..')
+sys.path.append('../dao')
+from dao.daily_info_dao import DaoDailyInfo
+from dao.account_info_dao import DaoAccountInfo
+from dao.feedback_dao import DaoFeedback
 
+dao_feedback = DaoFeedback()
 
 def update_feedback_answer(id, answer):
-    import mysql_service
-    sql_service = mysql_service.MysqlService()
-    sql_service.update_feedback_answer(id, answer)
+    dao_feedback.update_feedback_answer(id, answer)
 
 
 def update_feedback_status(id, status):
-    import mysql_service
-    sql_service = mysql_service.MysqlService()
-    sql_service.update_feedback_status(id, status)
+    dao_feedback.update_feedback_status(id, status)
     
 
 def add_feedback(content):
-    import mysql_service
     td = datetime.date.today()
-    sql_service = mysql_service.MysqlService()
-    sql_service.add_feedback_info(td, content)
+    dao_feedback.add_feedback_info(td, content)
 
 id = 36
 s = "目标为竞赛分数则可以提前完成，目标为挑战pk则只有等到结束日期才会比较结果"

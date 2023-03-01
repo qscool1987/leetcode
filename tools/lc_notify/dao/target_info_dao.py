@@ -129,3 +129,26 @@ class DaoTargetInfo(Dao):
             resp.append(item)
         return resp
     
+    def get_all_targets_befor_day(self, day):
+        if not self._connect_mysql():
+            return False
+        sql = "select * from " + self.USER_ATGERT_INFO_TABLE + \
+            " where dead_line <= '%s' and status = 1" % day
+        datas = self._query(sql)
+        if not datas:
+            return []
+        resp = []
+        for data in datas:
+            item = TargetRecord()
+            item.id = data[0]
+            item.user = data[1]
+            item.target_type = data[2]
+            item.target_value = data[3]
+            item.opponent = data[4]
+            item.status = data[5]
+            item.create_date = data[6]
+            item.dead_line = data[7]
+            item.level = data[8]
+            resp.append(item)
+        return resp
+    
