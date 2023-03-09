@@ -18,21 +18,30 @@
 */
 
 class ThreadPool {
+    /*
+    设计思想:生产者和多消费者模型，线程不停的从任务队列获取task进行执行
+    1.如果没有任务，线程就挂起
+    2.如果有任务，则唤醒线程执行
+    3.互斥锁控制线程消费任务队列
+    4.信号量负责唤醒挂起的县城
+    */
 public:
     ThreadPool(size_t);
+
     template<class F, class... Args>
-    auto enqueue(F&& f, Args&&... args) 
+    auto enqueue(F&& f, Args&&... args) //函数名称和参数列表，完美转发
         -> std::future<typename std::result_of<F(Args...)>::type>;
+    
     ~ThreadPool();
 private:
     // need to keep track of threads so we can join them
-    std::vector< std::thread > workers; //线程
+    std::vector<std::thread> workers; //线程池
     // the task queue
     std::queue< std::function<void()> > tasks; //任务队列
     
     // synchronization
-    std::mutex queue_mutex;
-    std::condition_variable condition;
+    std::mutex queue_mutex; //对任务队列进行加锁
+    std::condition_variable condition; // 信号量，唤醒线程
     bool stop;
 };
  
@@ -47,17 +56,15 @@ inline ThreadPool::ThreadPool(size_t threads)
                 for(;;) //死循环，不停的从任务队列中取任务 task，执行task()
                 {
                     std::function<void()> task;
-
-                    {
+                    { // lock的作用域
                         std::unique_lock<std::mutex> lock(this->queue_mutex); //互斥锁，所有线程互斥访问任务队列，任何时刻只有一个线程访问任务队列
-                        this->condition.wait(lock,
+                        this->condition.wait(lock,                          //
                             [this]{ return this->stop || !this->tasks.empty(); }); //条件变量，只有当stop=true 或者任务队列不为空，线程访问任务队列时，任务队列可能为空，为空的时候就让线程等待
                         if(this->stop && this->tasks.empty()) //stop变量用于控制线程池退出
                             return;
                         task = std::move(this->tasks.front());
                         this->tasks.pop();
                     }
-
                     task();
                 }
             }
