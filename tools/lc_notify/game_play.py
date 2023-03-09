@@ -59,6 +59,7 @@ class GamePlay(object):
         logger.info("deal target finished")
         self.check_rand_problem_finish(day)
         logger.info("deal rand problem finished")
+        print(json.dumps(self.user_td_coins))
         self._update_user_coins()
         logger.info("update coins finished")
         logger.info(json.dumps(self.user_td_coins))
