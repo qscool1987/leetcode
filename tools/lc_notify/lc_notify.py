@@ -15,65 +15,23 @@ import sys
 user_list2 = ['smilecode-2']  # 用于调试
 
 # 访问leetcode官方接口的对象
+dao_daily_info = DaoDailyInfo()
 leetcode_service = lc_service.LeetcodeService()
 
-def task(user_list):
-    resp = {}
+
+def task(user_list, yd_infos, td, hour):
+    dao = DaoDailyInfo()
+    td_infos = {}
     for u in user_list:
-        info = leetcode_service.get_user_lc_stat_info(u)
-        if not info:
+        t_l = leetcode_service.get_user_lc_stat_info(u)
+        if not t_l:
             continue
         # 获取竞赛分数信息
         score = leetcode_service.get_user_score_info(u)
-        info.rating_score = score
-        resp[u] = info
-    return resp
-        
-
-def stat_user_info():
-    """
-    统计所有用户的刷题信息并进行汇总，和昨日信息进行对比，将结果记录到mysql
-    """
-    td = datetime.date.today()
-    yd = td + datetime.timedelta(days=-1)
-    td_infos = {}
-    td = str(td)
-    yd = str(yd)
-    dao_daily_info = DaoDailyInfo()
-    dao_account = DaoAccountInfo()
-    # 从数据库加载昨天的统计信息, 账户映射信息, 奖牌信息
-    yd_infos = dao_daily_info.load_all_user_daily_info_by_day(yd)
-    account_infos = dao_account.load_all_account_infos()
-
-    user_list = []
-    for u, item in account_infos.items():
-        if item.status == 0:
-            user_list.append(u)
-    pool = ThreadPoolExecutor(max_workers=4)
-    k = 0
-    LIMIT = 20
-    futures = []
-    while k < len(user_list):
-        # 获取刷题信息
-        future = pool.submit(task, user_list[k : k + LIMIT])
-        futures.append(future)
-        k += LIMIT
-    for future in as_completed(futures):
-        if future.exception():
-            continue
-        td_infos.update(future.result())
-    # 对比
-    result = []
-    hour = datetime.datetime.now().hour
-    for u in user_list:
+        t_l.rating_score = score
         y_l = None
         if u in yd_infos:
             y_l = yd_infos[u]
-        t_l = None
-        if u in td_infos:
-            t_l = td_infos[u]
-        else:
-            continue
         if not y_l:
             t_l.new_solve = 0
         else:
@@ -108,18 +66,53 @@ def stat_user_info():
                     t_l.easy_num = 0
                 if t_l.lazy_days > settings.LazyLevel.LEVEL16:
                     t_l.lazy_days = settings.LazyLevel.LEVEL16
-        result.append(t_l.as_dict())
-        td_infos[u] = t_l
-    logger.info(result)
-    # print(json.dumps(result))
-    # 将今日统计信息写入数据库
-    for user, item in td_infos.items():
-        info = dao_daily_info.serach_single_user_daily_info(user, td)
+        # 将最新的用户统计信息写入数据看
+        info = dao.serach_single_user_daily_info(user, td)
+        item.date_time = td
         if not info:
-            item.date_time = td
-            dao_daily_info.add_single_user_daily_info(item)
+            dao.add_single_user_daily_info(item)
         else:
-            dao_daily_info.update_single_user_daily_info(td, item)
+            dao.update_single_user_daily_info(item)
+        td_infos[u] = t_l
+    return td_infos
+
+
+def stat_user_info():
+    """
+    统计所有用户的刷题信息并进行汇总，和昨日信息进行对比，将结果记录到mysql
+    """
+    td = datetime.date.today()
+    yd = td + datetime.timedelta(days=-1)
+    td_infos = {}
+    td = str(td)
+    yd = str(yd)
+    dao_account = DaoAccountInfo()
+    # 从数据库加载昨天的统计信息, 账户映射信息, 奖牌信息
+    yd_infos = dao_daily_info.load_all_user_daily_info_by_day(yd)
+    account_infos = dao_account.load_all_account_infos()
+    user_list = []
+    for u, item in account_infos.items():
+        if item.status == 0:
+            user_list.append(u)
+    hour = datetime.datetime.now().hour
+    pool = ThreadPoolExecutor(max_workers=6)
+    k = 0
+    LIMIT = 20
+    futures = []
+    while k < len(user_list):
+        # 获取刷题信息
+        future = pool.submit(task, user_list[k: k + LIMIT], yd_infos, td, hour)
+        futures.append(future)
+        k += LIMIT
+    for future in as_completed(futures):
+        if future.exception():
+            continue
+        data = future.result()
+        td_infos.update(data)
+    # result = []
+    # for u, v in td_infos.items():
+    #     result.append(v.as_dict())
+    # print(len(result), json.dumps(result))
     logger.info("add into mysql finished")
     # 游戏逻辑
     gameplay = game_play.GamePlay(td_infos, yd_infos)
@@ -128,7 +121,12 @@ def stat_user_info():
     if hour >= 23:
         logger.info("begin to play game!")
         gameplay.run(td)
+        logger.info("end play game!")
 
 
 if __name__ == '__main__':
+    import time
+    t1 = time.time()
     stat_user_info()
+    t2 = time.time()
+    logger.info("本次执行更新耗时: {}".format(t2 - t1))
