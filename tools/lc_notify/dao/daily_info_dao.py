@@ -154,7 +154,7 @@ class DaoDailyInfo(Dao):
             lazy_days=0 where user = '%s'" % user
         return self._update(sql)
 
-    def update_single_user_daily_info(self, date, item):
+    def update_single_user_daily_info(self, item):
         if not self._connect_mysql():
             return False
         sql = "update " + self.TABLE + " set \
@@ -162,7 +162,7 @@ class DaoDailyInfo(Dao):
             continue_days=%s, new_solve=%s, lazy_days=%s, total_days=%s, hard_num=%s, mid_num=%s, easy_num=%s, hard_total=%s, mid_total=%s, easy_total=%s where user = '%s' and \
             date_time ='%s'" % (item.total_solve, item.code_submit, item.problem_submit,
                                 item.rating_score, item.continue_days, item.new_solve, item.lazy_days, item.total_days,
-                                item.hard_num, item.mid_num, item.easy_num, item.hard_total, item.mid_total, item.easy_total, item.user, date)
+                                item.hard_num, item.mid_num, item.easy_num, item.hard_total, item.mid_total, item.easy_total, item.user, item.date_time)
         return self._update(sql)
 
     def add_single_user_daily_info(self, item: UserDailyInfoRecord):
@@ -196,7 +196,7 @@ class DaoDailyInfo(Dao):
         sql = "update user_lc_daily_info set total_solve=%s where user='%s' \
                and date_time='%s'" % (num, user, date_time)
         return self._update(sql)
-    
+
     def load_all_user_daily_infos(self):
         if not self._connect_mysql():
             return False

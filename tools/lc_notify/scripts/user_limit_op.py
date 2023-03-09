@@ -1,12 +1,12 @@
+import lc_service
+from dao.account_info_dao import DaoAccountInfo
+from dao.daily_info_dao import DaoDailyInfo
 import os
 import sys
 import datetime
 import random
 sys.path.append('..')
 sys.path.append('../dao')
-from dao.daily_info_dao import DaoDailyInfo
-from dao.account_info_dao import DaoAccountInfo
-import lc_service
 
 
 def open_user_lc_game(user, status):
@@ -40,7 +40,7 @@ def open_user_lc_game(user, status):
     if not user_daily_info:
         dao_daily.add_single_user_daily_info(info)
     else:
-        dao_daily.update_single_user_daily_info(td, info)
+        dao_daily.update_single_user_daily_info(info)
 
 
 def random_char():
@@ -63,4 +63,3 @@ def generate_user_token():
 # open_user_lc_game(user, 0)
 
 generate_user_token()
-
