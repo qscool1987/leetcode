@@ -33,14 +33,10 @@ def task(user_list):
 def stat_user_info():
     """
     统计所有用户的刷题信息并进行汇总，和昨日信息进行对比，将结果记录到mysql
-    如果有用户触发奖励条件，则给用户发送邮件通知
     """
-    # 更新本地git代码库，后面统计代码贡献
     td = datetime.date.today()
     yd = td + datetime.timedelta(days=-1)
     td_infos = {}
-    user_score = {}
-    git_infos = {}
     td = str(td)
     yd = str(yd)
     dao_daily_info = DaoDailyInfo()
