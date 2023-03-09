@@ -481,6 +481,8 @@ class TargetService(object):
                     current_rating_score = user_info.rating_score
                     current_continue_days = user_info.continue_days
                     days = self._delt_days(str(dead_line))  # 剩余天数
+                    if days <= 0:
+                        continue
                     if target_type == TargetType.Rank:
                         pass
                     elif target_type == TargetType.ProblemSolve:
@@ -561,7 +563,7 @@ class TargetService(object):
 
     def add_user_target(self, info):
         return self.daoTarget.add_user_target(info)
-    
+
     def deal_all_targets_status_before_day(self, day):
         target_infos = self.daoTarget.get_all_targets_befor_day(day)
         user_coins = {}
@@ -605,15 +607,18 @@ class TargetService(object):
             elif status == TargetStatus.FAIL:
                 logger.info("{} target_type {} failed!".format(user, target))
             self.daoTarget.update_user_target_status(id, status)
-            
+
             if status == TargetStatus.SUCC:
                 user_coins[user] = TargetLevel.from_level_to_score(level)
                 if target_type == TargetType.Challenge:
-                    user_coins[opponent] =  floor(-TargetLevel.from_level_to_score(level) / 2)
+                    user_coins[opponent] = floor(
+                        -TargetLevel.from_level_to_score(level) / 2)
             elif status == TargetStatus.FAIL:
-                user_coins[user] = floor(-TargetLevel.from_level_to_score(level) / 2)
+                user_coins[user] = floor(
+                    -TargetLevel.from_level_to_score(level) / 2)
                 if target_type == TargetType.Challenge:
-                    user_coins[opponent] = TargetLevel.from_level_to_score(level)
+                    user_coins[opponent] = TargetLevel.from_level_to_score(
+                        level)
         for user in user_coins:
             his_coins = self.daoAccount.search_user_coins(user)
             if not his_coins:
@@ -632,4 +637,3 @@ if __name__ == '__main__':
     gameplay = game_play.GamePlay()
     obj = TargetService(gameplay)
     obj.deal_all_targets_status_before_day(dead_line)
-    
