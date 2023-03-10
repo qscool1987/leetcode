@@ -1,10 +1,8 @@
 import datetime
-import json
 import sys
 sys.path.append('..')
 sys.path.append('../dao')
-import settings
-from dao.feedback_dao import FeedbackRecord, DaoFeedback
+from dao.feedback_dao import DaoFeedback
 from loghandle import logger
 from lc_error import ErrorCode
 

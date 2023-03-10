@@ -3,15 +3,9 @@
 当用户满足某个激励条件时将触发邮件通知机制
 """
 import email_service
-import settings
 from loghandle import logger
-
-from target_info_dao import TargetRecord, DaoTargetInfo
-from rand_problem_dao import RandProblemRecord, DaoRandProblem
-from interview_problem_dao import InterviewProblemRecord, DaoInterviewProblem
-from feedback_dao import FeedbackRecord, DaoFeedback
-from daily_info_dao import DaoDailyInfo, UserDailyInfoRecord
-from account_info_dao import AccountInfoRecord, DaoAccountInfo
+from daily_info_dao import UserDailyInfoRecord
+from account_info_dao import DaoAccountInfo
 import lc_service
 import random
 

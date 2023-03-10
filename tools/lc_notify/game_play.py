@@ -6,16 +6,12 @@ import award
 import lc_target
 import json
 import random
-import datetime
 import email_service
 import lc_service
 import settings
-from target_info_dao import TargetRecord, DaoTargetInfo
 from rand_problem_dao import RandProblemRecord, DaoRandProblem
-from interview_problem_dao import InterviewProblemRecord, DaoInterviewProblem
-from feedback_dao import FeedbackRecord, DaoFeedback
-from daily_info_dao import DaoDailyInfo, UserDailyInfoRecord
-from account_info_dao import AccountInfoRecord, DaoAccountInfo
+from daily_info_dao import DaoDailyInfo
+from account_info_dao import DaoAccountInfo
 
 from loghandle import logger
 

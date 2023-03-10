@@ -21,6 +21,7 @@ class ErrorCode:
     AVG_CODELINE_NUM_SMALL = 19
     DATETIME_GAP_SHORT2 = 20
     MYSQL_SERVICE_ERR = 21
+    FEEDBACK_ERR = 22
     errors = {
         0: "succ",
         1: "leetcode 账号不存在!",
@@ -43,7 +44,8 @@ class ErrorCode:
         18: "日均刷题数量需要大于等于1题",
         19: "日均提交代码量需要大于等于5行",
         20: "目标完成时间距离今天太短或者太长，请设置大于等于30天，小于等于365天!",
-        21: "数据库交互错误"
+        21: "数据库交互错误",
+        22: "暂时关闭意见功能",
     }
 
     @classmethod

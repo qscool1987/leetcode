@@ -1,13 +1,10 @@
 import datetime
-import json
 import sys
 sys.path.append('..')
 sys.path.append('../dao')
-import settings
 from dao.target_info_dao import TargetRecord, DaoTargetInfo
-from dao.daily_info_dao import DaoDailyInfo, UserDailyInfoRecord
-from dao.account_info_dao import DaoAccountInfo, AccountInfoRecord
-from loghandle import logger
+from dao.daily_info_dao import DaoDailyInfo
+from dao.account_info_dao import DaoAccountInfo
 from lc_error import ErrorCode
 from game_play import GamePlay
 from lc_target import (TargetType, TargetStatus, TargetService, TargetLevel)
@@ -20,6 +17,8 @@ class TargetInfoService(object):
         self.dao_account = DaoAccountInfo()
         self.target_service = TargetService(self.gameplay)
         self.dao_target = DaoTargetInfo()
+        self._lower_limit = 15
+        self._upper_limit = 360
     
     def submit_target_info(self, lc_account, target_type, target_val, dead_line):
         td = datetime.date.today()
@@ -29,12 +28,11 @@ class TargetInfoService(object):
             ret[1] = ErrorCode.error_message(ret[0])
             return ret
         delt_days = self.target_service._delt_days(dead_line)
-        if delt_days < 15 or delt_days > 365:
+        if delt_days < self._lower_limit or delt_days > self._upper_limit:
             ret[0] = ErrorCode.DATETIME_GAP_SHORT
             ret[1] = ErrorCode.error_message(ret[0])
             return ret
         userinfo = self.dao_account.search_account(lc_account)
-        logger.info(userinfo.as_dict())
         if not userinfo:
             ret[0] = ErrorCode.ACCOUNT_NOT_EXIST
             ret[1] = ErrorCode.error_message(ret[0])
@@ -78,12 +76,10 @@ class TargetInfoService(object):
             ret[1] = ErrorCode.error_message(ret[0])
             return ret
         info.level = level
-        logger.info(info.as_dict())
         self.target_service.add_user_target(info)
         return ret
 
     def get_target_info(self, pn, rn):
-        ret = ['0', "succ"]
         pn = int(pn)
         if pn < 1:
             pn = 1

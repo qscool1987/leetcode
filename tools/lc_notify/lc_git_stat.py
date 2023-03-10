@@ -1,5 +1,3 @@
-from curses.ascii import isdigit
-import sys
 import os
 
 def is_vaild_digit(num_str):
