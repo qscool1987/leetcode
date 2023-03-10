@@ -1,18 +1,16 @@
 from flask import Flask
 from flask import request
-import datetime
 import json
 import sys
 sys.path.append('./service')
 
-import settings
-from service.account_service import AccountService
-from service.feedback_service import FeedbackService
-from service.target_service import TargetInfoService
-from service.daily_info_service import DailyInfoService
-from service.interview_service import InterviewService
-from loghandle import logger
 from lc_error import ErrorCode
+from loghandle import logger
+from service.interview_service import InterviewService
+from service.daily_info_service import DailyInfoService
+from service.target_service import TargetInfoService
+from service.feedback_service import FeedbackService
+from service.account_service import AccountService
 
 app = Flask(__name__)
 
@@ -41,14 +39,14 @@ def submit_account_info():
     email = body.get('email_account')
     account_service = AccountService()
     try:
-        ret = account_service.submit_account_info(lc_account, git_account, email)
+        ret = account_service.submit_account_info(
+            lc_account, git_account, email)
         return json.dumps(ret)
     except Exception as ex:
         logger.warning(ex)
         ret[0] = ErrorCode.MYSQL_SERVICE_ERR
         ret[1] = ErrorCode.error_message(ret[0])
         return json.dumps(ret)
-    
 
 
 @app.route('/submit_feedback_info')
@@ -58,14 +56,17 @@ def submit_feedback_info():
     logger.info(body)
     content = body.get('msg')
     feedback_service = FeedbackService()
-    try:
-        ret = feedback_service.submit_feedback_info(content)
-        return json.dumps(ret)
-    except Exception as ex:
-        logger.warning(ex)
-        ret[0] = ErrorCode.SERVER_ERROR
-        ret[1] = ErrorCode.error_message(ret[0])
-        return json.dumps(ret)
+    ret[0] = ErrorCode.FEEDBACK_ERR
+    ret[1] = ErrorCode.error_message(ret[0])
+    return json.dumps(ret)
+    # try:
+    #     ret = feedback_service.submit_feedback_info(content)
+    #     return json.dumps(ret)
+    # except Exception as ex:
+    #     logger.warning(ex)
+    #     ret[0] = ErrorCode.SERVER_ERROR
+    #     ret[1] = ErrorCode.error_message(ret[0])
+    #     return json.dumps(ret)
 
 
 @app.route('/get_feedback_info')
@@ -85,6 +86,7 @@ def get_feedback_info():
         ret[1] = ErrorCode.error_message(ret[0])
         return json.dumps(ret)
 
+
 @app.route('/get_interview_problem_info')
 def get_interview_problem_info():
     ret = ['0', "succ"]
@@ -103,6 +105,7 @@ def get_interview_problem_info():
         ret[1] = ErrorCode.error_message(ret[0])
         return json.dumps(ret)
 
+
 @app.route('/get_interview_problem_types')
 def get_interview_problem_types():
     ret = ['0', "succ"]
@@ -116,6 +119,7 @@ def get_interview_problem_types():
         ret[1] = ErrorCode.error_message(ret[0])
         return json.dumps(ret)
 
+
 @app.route('/submit_target_info')
 def submit_target_info():
     ret = ['0', "succ"]
@@ -127,7 +131,8 @@ def submit_target_info():
     dead_line = body.get('dead_line')
     target_service = TargetInfoService()
     try:
-        ret = target_service.submit_target_info(lc_account, target_type, target_val, dead_line)
+        ret = target_service.submit_target_info(
+            lc_account, target_type, target_val, dead_line)
         return json.dumps(ret)
     except Exception as ex:
         logger.warning(ex)

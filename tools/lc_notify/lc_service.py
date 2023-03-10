@@ -2,11 +2,7 @@
 #!/usr/bin/env python
 import json
 import requests
-import settings
-from loghandle import logger
 from daily_info_dao import UserDailyInfoRecord
-import sys
-import time
 import datetime
 
 

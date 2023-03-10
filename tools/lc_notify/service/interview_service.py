@@ -1,12 +1,7 @@
-import datetime
-import json
 import sys
 sys.path.append('..')
 sys.path.append('../dao')
-import settings
-from dao.interview_problem_dao import DaoInterviewProblem, InterviewProblemRecord
-from loghandle import logger
-from lc_error import ErrorCode
+from dao.interview_problem_dao import DaoInterviewProblem
 
 
 class InterviewService(object):

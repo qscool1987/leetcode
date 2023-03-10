@@ -1,8 +1,7 @@
-from dao.account_info_dao import DaoAccountInfo, AccountInfoRecord
-from dao.daily_info_dao import DaoDailyInfo, UserDailyInfoRecord
+from dao.account_info_dao import DaoAccountInfo
+from dao.daily_info_dao import DaoDailyInfo
 import settings
 import datetime
-import json
 import sys
 sys.path.append('..')
 sys.path.append('../dao')

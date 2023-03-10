@@ -5,16 +5,15 @@
 
 """
 from math import ceil, floor
-import settings
 from loghandle import logger
 import datetime
 from dateutil.parser import parse
 from lc_error import ErrorCode
 import email_service
 from loghandle import logger
-from daily_info_dao import DaoDailyInfo, UserDailyInfoRecord
-from target_info_dao import DaoTargetInfo, TargetRecord
-from account_info_dao import AccountInfoRecord, DaoAccountInfo
+from daily_info_dao import DaoDailyInfo
+from target_info_dao import DaoTargetInfo
+from account_info_dao import DaoAccountInfo
 
 
 class TargetType:

@@ -1,13 +1,11 @@
 import datetime
-import json
 import sys
 sys.path.append('..')
 sys.path.append('../dao')
-from dao.daily_info_dao import DaoDailyInfo, UserDailyInfoRecord
+from dao.daily_info_dao import DaoDailyInfo
 from dao.account_info_dao import AccountInfoRecord, DaoAccountInfo
 from lc_service import LeetcodeService
 from loghandle import logger
-from lc_target import (TargetType, TargetStatus, TargetService, TargetLevel)
 from lc_error import ErrorCode
 from award import MedalType
 

@@ -6,32 +6,6 @@ sys.path.append('../dao')
 from daily_info_dao import DaoDailyInfo
 from account_info_dao import DaoAccountInfo
 
-class Account:
-    def __init__(self):
-        pass
-    
-    def build(self, acc):
-        self.user = acc[0]
-        self.git_account = acc[1]
-        self.medal = acc[2]
-        self.award = acc[3]
-        self.email = acc[4]
-        self.date_time = acc[5]
-        self.coins = acc[6]
-
-
-class Record:
-    def __init__(self, info):
-        self.user = info[0]
-        self.total_solve = info[1]
-        self.code_submit = info[2]
-        self.problem_submit = info[3]
-        self.rating_score = info[4]
-        self.continue_days = info[5]
-        self.new_solve = info[6]
-        self.lazy_days = info[7]
-        self.date_time = info[8]
-
 
 """
 0.累计打卡天数，入群总天数 出勤率 = 累积打卡天数 / 入群总天数    
