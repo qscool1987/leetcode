@@ -100,7 +100,6 @@ def stat_user_info():
     futures = []
     while k < len(user_list):
         # 获取刷题信息
-        daoinfo = DaoDailyInfo()
         future = pool.submit(task, user_list[k: k + LIMIT], yd_infos, td, hour)
         futures.append(future)
         k += LIMIT

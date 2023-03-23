@@ -33,12 +33,12 @@ class SegmentTree {
 public:
     using LL = long long;
     // tree的节点总数
-    static const int N = 5e5;
+    static const int N = 3e6;
     
     // 标记节点是否已开
     static const int INF = INT_MAX;
     struct Node {
-        Node():l(INF),r(INF),val(0){}
+        Node():l(INF),r(INF),val(INF/2){}
         int l, r; //左右子树的索引号
         long long val;
     };
@@ -53,6 +53,7 @@ public:
      返回值：无
      */
     void insert(int cur, LL l, LL r, LL val) {
+        //节点范围代表的是值域范围，存储[l,r]之间插入的元素数量
         tree[cur].val += 1;
         if (val == l && val == r) {
             return;
@@ -67,14 +68,14 @@ public:
     }
 
     /*
-     功能：向线段树中插入单点
+     功能：区间更新
      参数1：cur一般为1，表示根索引
      参数2，3：[l, r]表示该节点代表的范围
      参数4,5：待插入区间的左右端点
      返回值：无
      */
     LL insert(int cur, LL l, LL r, LL i, LL j) {
-        if (tree[cur].val == r-l+1) {
+        if (tree[cur].val == r-l+1) { //
             return tree[cur].val;
         }
         if (i <= l && j >= r) {
@@ -123,5 +124,63 @@ public:
             return search(tree[cur].l, l, m, i, m) +
                 search(tree[cur].r, m + 1, r, m + 1, j);
         }
+    }
+};
+
+
+class SegmentTree2 {
+    /*
+    该线断树动态分配节点数目
+    */
+public:
+    struct SegNode {
+        long long lo, hi;
+        int add;
+        SegNode* lchild, *rchild;
+        SegNode(long long left, long long right): lo(left), hi(right), add(0), lchild(nullptr), rchild(nullptr) {}
+    };
+    SegNode *root;
+    SegmentTree2(long long L, long long R) {
+        root = new SegNode(L, R);
+    }
+    void insert(long long val) {
+        insert(root, val);
+    }
+
+    void insert(SegNode* root, long long val) {
+        root->add++;
+        if (root->lo == root->hi) {
+            return;
+        }
+        long long mid = (root->lo + root->hi) >> 1;
+        if (val <= mid) {
+            if (!root->lchild) {
+                root->lchild = new SegNode(root->lo, mid);
+            }
+            insert(root->lchild, val);
+        }
+        else {
+            if (!root->rchild) {
+                root->rchild = new SegNode(mid + 1, root->hi);
+            }
+            insert(root->rchild, val);
+        }
+    }
+
+    int search(long long left, long long right) {
+        return search(root, left, right);
+    }
+
+    int search(SegNode* root, long long left, long long right) const {
+        if (!root) {
+            return 0;
+        }
+        if (left > root->hi || right < root->lo) {
+            return 0;
+        }
+        if (left <= root->lo && root->hi <= right) {
+            return root->add;
+        }
+        return search(root->lchild, left, right) + search(root->rchild, left, right);
     }
 };

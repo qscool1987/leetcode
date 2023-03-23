@@ -200,7 +200,7 @@ void postArray(vector<int>& nums, vector<int>& post) {
 最大递增子序列 nums[i] < nums[i+1]
 如果要求 nums[i] <= nums[i+1] 则将 lower_bound 改成 upper_bound
 */
-void maxSubArraySet(vector<int>& nums) {
+int maxSubArraySet(vector<int>& nums) {
     int n = nums.size();
     if (n <= 1) return n;
     vector<int> ans;
@@ -218,16 +218,71 @@ void maxSubArraySet(vector<int>& nums) {
     return sz;
 }
 
+/*
+删除倒数第k个节点
+假如节点个数为n
+1 2 3 4 5
+先让一个指针走k步
+然后第二个指针从开始和第一个指针一起走
+第一个指针走到结尾后，第二个指针指节点就是要删除的节点
+*/
+
+
+/*
+前缀比较优化
+可以用一个diff变量来记录前缀整体的不同
+if p not in mp2:
+    ++diff
+mp2[p] = cnt
+if mp2[p] == mp1[p]:
+    --diff
+if diff == 0: 说明此时前缀整体相同
+*/
+
+/*
+Problem Statement
+You are given an integer 
+K greater than or equal to 
+2.
+Find the minimum positive integer 
+N such that 
+N! is a multiple of 
+K.
+
+Here, 
+N! denotes the factorial of 
+N. Under the Constraints of this problem, we can prove that such an 
+N always exists.
+
+Constraints
+2≤K≤10 
+12
+ 
+K is an integer.
+*/
+long long findMinN(long long k) {
+	long long p,a,n,x,ans=1;
+	for(p=2;(p*p)<=k;p++){
+		a=0;
+		while(k%p==0)k /= p, a++;     //质因数分解， 质数为p，个数为a
+		n=0;
+		while(a > 0){    //判断n要到多少才能满足n!中有a个p
+			n += p;
+			x = n;
+			while(x % p == 0) {
+                x /= p;
+                a--;
+            }
+		}
+		ans=max(ans,n);
+	}
+	ans=max(ans,k);
+	return ans;
+}
+
 
 
 int main() {
-    vector<int> nums = {1, 3, 5, 4, 2};
-    vector<int> pre, post;
-    preArray(nums, pre);
-    postArray(nums, post);
-    for(auto x : pre) cout << x << " ";
-    cout << endl;
-    for(auto x : post) cout << x << " ";
-    cout << endl;
+    
     return 0;
 }

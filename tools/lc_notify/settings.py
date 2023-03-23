@@ -22,18 +22,18 @@ class HonerLevel:
         6 : "无双隐士", #340
         7 : "世外高人", #400
         8 : "江湖侠隐", #480
-        9 : "名满天下", #580
-        10 : "陆地飞仙", #700
-        11 : "无极天师", #840
-        12 : "神机真人", #1000
-        13 : "金身尊者", #1180
-        14 : "天外飞仙", #1380
-        15 : "无敌圣者", #1600
-        16 : "三界贤君", #1840
-        17 : "万圣天尊", #2100
-        18 : "九天圣佛", #2380
-        19 : "神通广大", #2680
-        20 : "无所不能"  #3000
+        9 : "名满天下", #680
+        10 : "逍遥之仙", #1000
+        11 : "陆地飞仙", #1400
+        12 : "神机真人", #1800
+        13 : "降魔金仙", #2300
+        14 : "天外飞仙", #3000
+        15 : "无敌圣者", #3800
+        16 : "三界贤君", #4800
+        17 : "万圣天尊", #6000
+        18 : "九天圣佛", #7500
+        19 : "神通广大", #10000
+        20 : "无所不能"  #13000
     }
     
     @classmethod
@@ -47,29 +47,29 @@ class HonerLevel:
             level = 7
         elif score > 400 and score <= 480:
             level = 8
-        elif score > 480 and score <= 580:
+        elif score > 480 and score <= 680:
             level = 9
-        elif score > 580 and score <= 700:
+        elif score > 680 and score <= 1000:
             level = 10
-        elif score > 700 and score <= 840:
+        elif score > 1000 and score <= 1400:
             level = 11
-        elif score > 840 and score <= 1000:
+        elif score > 1400 and score <= 1800:
             level = 12
-        elif score > 1000 and score <= 1180:
+        elif score > 1800 and score <= 2300:
             level = 13
-        elif score > 1180 and score <= 1380:
+        elif score > 2300 and score <= 3000:
             level = 14
-        elif score > 1380 and score <= 1600:
+        elif score > 3000 and score <= 3800:
             level = 15
-        elif score > 1600 and score <= 1840:
+        elif score > 3800 and score <= 4800:
             level = 16
-        elif score > 1840 and score <= 2100:
+        elif score > 4800 and score <= 6000:
             level = 17
-        elif score > 2100 and score <= 2380:
+        elif score > 6000 and score <= 7500:
             level = 18
-        elif score > 2380 and score <= 2680:
+        elif score > 7500 and score <= 10000:
             level = 19
-        elif score > 2680:
+        elif score > 10000:
             level = 20
         return HonerLevel.honerLevels[level]
 
@@ -145,5 +145,5 @@ class RandomProblemStatus:
 
 
 if __name__ == '__main__':
-    res = HonerLevel.from_level_to_str(861)
+    res = HonerLevel.from_level_to_str(2480)
     print(res)
