@@ -9,6 +9,7 @@
 #include <set>
 #include <unordered_set>
 #include <cmath>
+#include<limits.h> 
 using namespace std;
 
 long long UPLIMIT = 1LL << 60;
@@ -40,6 +41,23 @@ vector<int> dijkstra(vector<vector<pair<int, int>>> &g, int start) {
 }
 
 /*
+最短路径 Floyd 算法
+邻接矩阵表示图
+*/
+void floyd(vector<vector<int>>& g, vector<vector<long long>>& cost) {
+    int n = g.size();
+    long long UP = 1e17;
+    for(int k = 0; k < n; ++k) {
+        for(int i = 0; i < n; ++i) {
+            for(int j = 0; j < n; ++j) {
+                if (cost[i][k] >= UP || cost[k][j] >= UP) continue;
+                if (cost[i][k] + cost[k][j] < cost[i][j]) cost[i][j] = cost[i][k] + cost[k][j];
+            }
+        }
+    }
+}
+
+/*
  功能：拓扑排序
  参数1：n为节点数目
  参数2：grap为邻接矩阵表示的有向图
@@ -67,4 +85,38 @@ vector<int> topology_sort(int n, vector<vector<int>>& grap) {
         }
     }
     return ans;
+}
+
+/*
+判断二分图判断,返回集合顶点个数
+*/
+typedef pair<long long, long long> P;
+vector<int> color;
+P dfs(vector<vector<int>>& g, int cur, int c) {
+    P ans = {0, 0};
+    color[cur] = c;
+    if (c == 1) {
+        ans.first++;
+    } else {
+        ans.second++;
+    }
+    for(auto x : g[cur]) {
+        if (color[x] == -c) continue;
+        if (color[x] == c) return {-1, -1};
+        auto [b, w] = dfs(g, x, -c);
+        if (b == -1) return {-1, -1};
+        ans.first += b;
+        ans.second += w;
+    }
+    return ans;
+}
+/*
+4 2
+3 1
+5 2
+3 2*/
+int main() {
+    
+
+    return 0;
 }

@@ -38,7 +38,6 @@ class Dao(object):
     
     def _add(self, sql):
         try:
-            logger.info(sql)
             self.cur.execute(sql)
             self.conn.commit()
             self.cur.close()
@@ -53,7 +52,6 @@ class Dao(object):
 
     def _query(self, sql):
         try:
-            logger.info(sql)
             self.cur.execute(sql)
             data = self.cur.fetchall()
             self.cur.close()
@@ -67,7 +65,6 @@ class Dao(object):
 
     def _update(self, sql):
         try:
-            logger.info(sql)
             self.cur.execute(sql)
             self.conn.commit()
             self.cur.close()
