@@ -148,11 +148,13 @@ class GamePlay(object):
                 self.user_td_coins[u] += 50
 
     def add_user_coins(self, user, coins):
+        if user not in self.user_td_coins:
+            return
         self.user_td_coins[user] += coins
 
     def publish_rand_problem(self, td):  # 每天6点发布
         """抽题指定随机用户完成"""
-        pid = random.randint(self.PNUM_START, self.PUNM_END)
+        pid = random.randint(self.PNUM_START, self.PUNM_END)  # 随机题目id
         coins = random.randint(3, 5)
         users = self.dao_account.load_all_email_users()
         k1 = random.randint(1, len(users))
@@ -195,8 +197,8 @@ class GamePlay(object):
                 user, lc_number, td)
             if status == 2:
                 self.add_user_coins(user, coins)
-            else:
-                self.add_user_coins(user, -1)
+            # else:
+            #     self.add_user_coins(user, -1)
             self.dao_rand_problem.update_rand_problem_status(id, status)
 
 

@@ -16,17 +16,12 @@ using namespace std;
 先预处理，后续直接判断 x 是否为质数
 */
 
-unordered_set<int> st;
+vector<bool> prim(1000010, true);
 const int N = 1000000;
 int init = [](int n){
-    int vis[1000010] = {0};
-    for(int i = 2; i <= n; i++)
-    {
-        if(!vis[i])
-        {
-            st.insert(i);
-            for(int j = i * 2; j <= n; j += i)
-            vis[j] = true;
+    for(int i = 2; i <= n; i++) {
+        if(prim[i]) {
+            for(int j = i * 2; j <= n; j += i) prim[j] = false;
         }
     }
     return 0;
@@ -38,7 +33,7 @@ int init = [](int n){
 将整数 num 分解质因素
 */
 void div_num_into_prime(int num, vector<int>& out) {
-    for (int i = 2;i <= num;i++) {
+    for (int i = 2; i <= num / i; i++) {
         while (num != i) {
             if (num % i == 0) {
                 out.push_back(i);

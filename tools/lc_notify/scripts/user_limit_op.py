@@ -1,12 +1,14 @@
-import lc_service
-from dao.account_info_dao import DaoAccountInfo
-from dao.daily_info_dao import DaoDailyInfo
 import os
 import sys
 import datetime
 import random
 sys.path.append('..')
 sys.path.append('../dao')
+import lc_service
+from dao.account_info_dao import DaoAccountInfo
+from dao.daily_info_dao import DaoDailyInfo
+from dao.dao import Dao
+from email_service import EmailService
 
 
 def open_user_lc_game(user, status):
@@ -59,7 +61,17 @@ def generate_user_token():
         dao_account.update_user_token(user, token)
 
 
-# user = 'zhi-xing-8ec'
-# open_user_lc_game(user, 0)
+def send_award(user):
+    dao_acc = DaoAccountInfo()
+    
+    award_str = """恭喜您在网站积分排名中名列前矛，感谢对网站的认可和贡献，同时也表示鼓励 \
+        有一份小礼物要送给您，辛苦填写一下快递地址，收件人信息和电话号码～ \
+        回复此邮件即可!!\n 请放心，所有信息会严格保密。"""
+    user_info = dao_acc.search_account(user)
+    # if user_info.email != '':
+    #     EmailService.send_email(user_info.email, award_str)
+    # else:
+    print(user)
 
-generate_user_token()
+user = 'ericyu'
+open_user_lc_game(user, 0)
