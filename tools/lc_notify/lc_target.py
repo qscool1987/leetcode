@@ -141,6 +141,11 @@ class TargetLevel:
 
 
 class TargetService(object):
+    target_succ_str = "恭喜您，您于{create_date}设定的目标：{target_name} 达到 {target_value}，难度等级 {level} 已达成，系统奖励: {award_coins} \
+        个积分。努力总有收获，付出终有回报，今天的努力将造就未来的辉煌！！！"
+    target_fail_str = "很遗憾，您于{create_date}设定的目标：{target_name} 达到 {target_value}，难度等级 {level} 已失败，系统扣除: {award_coins} \
+        个积分。目标设定需要慎重评估，一旦设定还望君坚持完成。积小流成江海，积跬步成千里，下一个目标一定要完成它哦！！！"
+    
     def __init__(self, game_play):
         self.daoDailyInfo = DaoDailyInfo()
         self.daoTarget = DaoTargetInfo()
@@ -416,12 +421,16 @@ class TargetService(object):
         for target in target_infos:
             id = target.id
             user = target.user
+            # if user != 'smilecode-2':  # 调试代码
+            #     continue
             target_type = target.target_type
             target_value = target.target_value
             opponent = target.opponent
             status = target.status
             dead_line = target.dead_line
             level = target.level
+            create_date = target.create_date
+            target_name = TargetType.from_type_to_str(target_type)
             if target_type == TargetType.Rank:
                 pass
             elif target_type == TargetType.ProblemSolve:
@@ -453,12 +462,29 @@ class TargetService(object):
                 if target_type == TargetType.Challenge:
                     self.game_play.add_user_coins(
                         opponent, -TargetLevel.from_level_to_score(level) / 2)
+                msg = self.target_succ_str.format(create_date=create_date,
+                                            target_name=target_name,
+                                            target_value=target_value,
+                                            level=level,
+                                            award_coins=TargetLevel.from_level_to_score(level))
+                user_account = self.daoAccount.search_account(user)
+                if user_account.email:
+                    email_service.EmailService.send_email(user_account.email, msg)
             elif status == TargetStatus.FAIL:
                 self.game_play.add_user_coins(
                     user, -TargetLevel.from_level_to_score(level) / 2)
                 if target_type == TargetType.Challenge:
                     self.game_play.add_user_coins(
                         opponent, TargetLevel.from_level_to_score(level))
+                msg = self.target_fail_str.format(create_date=create_date,
+                                            target_name=target_name,
+                                            target_value=target_value,
+                                            level=level,
+                                            award_coins=floor(TargetLevel.from_level_to_score(level) / 2))
+                user_account = self.daoAccount.search_account(user)
+                if user_account.email:
+                    email_service.EmailService.send_email(user_account.email, msg)
+                
             elif status == TargetStatus.PROCESSING and target_type == TargetType.ProblemSolve:
                 # 通知用户 抓紧完成目标
                 user_account = None
@@ -635,4 +661,4 @@ if __name__ == '__main__':
     dead_line = '2023-02-28'
     gameplay = game_play.GamePlay()
     obj = TargetService(gameplay)
-    obj.deal_all_targets_status_before_day(dead_line)
+    obj.deal_all_targets_status()

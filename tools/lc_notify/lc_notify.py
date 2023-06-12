@@ -96,7 +96,7 @@ def stat_user_info():
     hour = datetime.datetime.now().hour
     pool = ThreadPoolExecutor(max_workers=6)
     k = 0
-    LIMIT = 20
+    LIMIT = 200
     futures = []
     while k < len(user_list):
         # 获取刷题信息

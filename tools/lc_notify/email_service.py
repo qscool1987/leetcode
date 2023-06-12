@@ -30,6 +30,7 @@ class EmailService(object):
             # 括号中对应的是发件人邮箱账号、收件人邮箱账号、发送邮件
             smtp.sendmail(EmailService.fm_addr, to_addr, msg.as_string())
             smtp.quit()  # 关闭连接
+            logger.info("to: {}, msg: {}".format(to_addr, bodystr))
         except Exception as e:
             logger.error(e)
             ret = False

@@ -110,11 +110,53 @@ P dfs(vector<vector<int>>& g, int cur, int c) {
     }
     return ans;
 }
+
 /*
-4 2
-3 1
-5 2
-3 2*/
+欧拉回路遍历
+Hierholzer 算法
+Hierholzer 算法用于在连通图中寻找欧拉路径，其流程如下：
+1.从起点出发，进行深度优先搜索。
+2.每次沿着某条边从某个顶点移动到另外一个顶点的时候，都需要删除这条边。
+3.如果没有可移动的路径，则将所在节点加入到栈中，并返回。
+
+给你一份航线列表 tickets ，其中 tickets[i] = [fromi, toi] 表示飞机出发和降落的机场地点。请你对该行程进行重新规划排序。
+所有这些机票都属于一个从 JFK（肯尼迪国际机场）出发的先生，所以该行程必须从 JFK 开始。如果存在多种有效的行程，
+请你按字典排序返回最小的行程组合。
+例如，行程 ["JFK", "LGA"] 与 ["JFK", "LGB"] 相比就更小，排序更靠前。
+假定所有机票至少存在一种合理的行程。且所有的机票 必须都用一次 且 只能用一次。
+
+输入：tickets = [["MUC","LHR"],["JFK","MUC"],["SFO","SJC"],["LHR","SFO"]]
+输出：["JFK","MUC","LHR","SFO","SJC"]
+*/
+
+class Solution {
+public:
+    unordered_map<string, priority_queue<string, vector<string>, std::greater<string>>> vec;
+
+    vector<string> stk;
+
+    void dfs(const string& curr) {
+        while (vec.count(curr) && vec[curr].size() > 0) {
+            string tmp = vec[curr].top();
+            vec[curr].pop();
+            dfs(move(tmp));
+        }
+        stk.emplace_back(curr);
+    }
+
+    vector<string> findItinerary(vector<vector<string>>& tickets) {
+        for (auto& it : tickets) {
+            vec[it[0]].emplace(it[1]);
+        }
+        dfs("JFK");
+
+        reverse(stk.begin(), stk.end());
+        return stk;
+    }
+};
+
+void
+
 int main() {
     
 
