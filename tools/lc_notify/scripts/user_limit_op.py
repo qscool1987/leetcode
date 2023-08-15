@@ -24,7 +24,7 @@ def open_user_lc_game(user, status):
     # coins = 100
     if medal == 1 and (mdeal & his_medal) == 0:
         his_coins += 30
-    if medal == 2 and ((mdeal & his_medal) == 0):
+    if medal == 2 and ((medal & his_medal) == 0):
         medal = 3
         his_medal += 50
     dao_account.update_user_coins(user, his_coins)
@@ -67,11 +67,13 @@ def send_award(user):
     award_str = """恭喜您在网站积分排名中名列前矛，感谢对网站的认可和贡献，同时也表示鼓励 \
         有一份小礼物要送给您，辛苦填写一下快递地址，收件人信息和电话号码～ \
         回复此邮件即可!!\n 请放心，所有信息会严格保密。"""
+    award_str = """恭喜您完成UNBELIEVABLE难度目标，实现自我突破。感谢对网站的认可和贡献，同时也表示鼓励 \
+        有一份小礼物要送给您，辛苦填写一下快递地址，收件人信息和电话号码～ \
+        回复此邮件即可!!\n 请放心，所有信息会严格保密。"""
     user_info = dao_acc.search_account(user)
-    # if user_info.email != '':
-    #     EmailService.send_email(user_info.email, award_str)
-    # else:
-    print(user)
+    if user_info.email != '':
+        print(user_info.email, award_str)
+        EmailService.send_email(user_info.email, award_str)
 
-user = 'ericyu'
+user = 'train_sky'
 open_user_lc_game(user, 0)

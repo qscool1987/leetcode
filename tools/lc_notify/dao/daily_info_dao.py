@@ -115,6 +115,37 @@ class DaoDailyInfo(Dao):
             item.date_time = data[15]
             return item
         return None
+    
+    def search_single_user_all_info(user):
+        if not self._connect_mysql():
+            return False
+        sql = "select " + ",".join(self.FIELDS) + \
+            " from " + self.TABLE + \
+            " where user = '%s' order by date_time asc" % user
+        datas = self._query(sql)
+        if not datas:
+            return None
+        resp = []
+        for data in datas:
+            item = UserDailyInfoRecord()
+            item.user = data[0]
+            item.total_solve = data[1]
+            item.code_submit = data[2]
+            item.problem_submit = data[3]
+            item.rating_score = data[4]
+            item.continue_days = data[5]
+            item.new_solve = data[6]
+            item.lazy_days = data[7]
+            item.total_days = data[8]
+            item.hard_num = data[9]
+            item.mid_num = data[10]
+            item.easy_num = data[11]
+            item.hard_total = data[12]
+            item.mid_total = data[13]
+            item.easy_total = data[14]
+            item.date_time = data[15]
+            resp.append(item)
+        return resp
 
     def serach_single_user_daily_info(self, user, date):
         if not self._connect_mysql():

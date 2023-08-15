@@ -170,7 +170,7 @@ class GamePlay(object):
         self.dao_rand_problem.add_rand_problem_record(item)
         bodystr = "恭喜！！\n你被随机抽中参与今天的幸运答题，leetcode题号为：" + \
             str(pid) + "，完成后可获得：" + str(coins) + \
-            "积分奖励！！\n请于今天24点之前完成，否则要扣除1个积分哦！！"
+            "积分奖励！！\n请于今天24点之前完成！！"
         email_service.EmailService.send_email(email1, bodystr)
         if k2 == k1:
             return
