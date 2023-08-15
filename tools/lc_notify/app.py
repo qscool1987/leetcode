@@ -56,17 +56,19 @@ def submit_feedback_info():
     logger.info(body)
     content = body.get('msg')
     feedback_service = FeedbackService()
-    ret[0] = ErrorCode.FEEDBACK_ERR
-    ret[1] = ErrorCode.error_message(ret[0])
-    return json.dumps(ret)
-    # try:
-    #     ret = feedback_service.submit_feedback_info(content)
-    #     return json.dumps(ret)
-    # except Exception as ex:
-    #     logger.warning(ex)
-    #     ret[0] = ErrorCode.SERVER_ERROR
-    #     ret[1] = ErrorCode.error_message(ret[0])
-    #     return json.dumps(ret)
+    if not content.startswith('advice-'):
+        ret[0] = ErrorCode.FEEDBACK_ERR
+        ret[1] = ErrorCode.error_message(ret[0])
+        return json.dumps(ret)
+    try:
+        content = content[7:]
+        ret = feedback_service.submit_feedback_info(content)
+        return json.dumps(ret)
+    except Exception as ex:
+        logger.warning(ex)
+        ret[0] = ErrorCode.SERVER_ERROR
+        ret[1] = ErrorCode.error_message(ret[0])
+        return json.dumps(ret)
 
 
 @app.route('/get_feedback_info')
