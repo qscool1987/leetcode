@@ -75,5 +75,5 @@ def send_award(user):
         print(user_info.email, award_str)
         EmailService.send_email(user_info.email, award_str)
 
-user = 'train_sky'
+user = 'serendipitylb'
 open_user_lc_game(user, 0)

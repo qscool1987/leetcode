@@ -346,9 +346,13 @@ def generate_user_data_table():
         target_infos[target.user].append(target)
     
     ac_infos = []
+    today = datetime.date.today()
     for u in user_d_infos:
         infos = user_d_infos[u]
-        dt = infos[-1].date_time - infos[0].date_time
+        y = infos[0].date_time.year
+        m = infos[0].date_time.month
+        d = infos[0].date_time.day
+        dt = today - datetime.date(y,m,d)
         dt = dt.days + 1
         if dt <= 0:
             continue
